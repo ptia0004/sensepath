@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SensePath</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: #f7f8fa; color: #111827; }
+
+    /* ── Navigation ── */
+    .nav {
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 20px 60px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .nav-logo { font-size: 27px; font-weight: 700; color: #111827; }
+    .nav-subtitle { font-size: 17px; color: #6b7280; }
+    .nav-links { margin-left: auto; display: flex; gap: 20px; }
+    .nav-links a {
+      font-size: 14px; color: #6b7280; text-decoration: none;
+      padding: 6px 14px; border-radius: 6px; transition: background 0.2s;
+    }
+    .nav-links a:hover { background: #f3f4f6; }
+    .nav-links a.active { color: #111827; font-weight: 600; background: #f3f4f6; }
+
+    /* ── Page Layout ── */
+    .page { display: none; min-height: calc(100vh - 69px); padding: 40px 60px; }
+    .page.active { display: block; }
+    .page-desc { font-size: 16px; color: #6b7280; margin-bottom: 40px; }
+    .content-grid { display: grid; grid-template-columns: 1fr 420px; gap: 40px; align-items: start; }
+
+    /* ── Cards ── */
+    .card { background: #fff; border-radius: 16px; padding: 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    .card-sm { background: #fff; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 20px; }
+    .sidebar-stack { display: flex; flex-direction: column; gap: 20px; }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      background: #111827; color: #fff; border: none;
+      padding: 16px 40px; border-radius: 12px;
+      font-size: 17px; font-weight: 700; cursor: pointer;
+      font-family: inherit; transition: background 0.2s;
+    }
+    .btn-primary:hover { background: #1f2937; }
+    .btn-full { width: 100%; }
+
+    /* ── Page 1: Community Sensory Map ── */
+    .map-large {
+      background: #e9ecf0; border-radius: 16px;
+      height: 520px; position: relative; overflow: hidden;
+    }
+    .map-lines {
+      position: absolute; inset: 0;
+    }
+    .map-pin {
+      position: absolute; display: flex; align-items: center; gap: 8px;
+    }
+    .pin-icon {
+      width: 36px; height: 36px;
+      background: #fff; border: 2px solid #111827; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 16px;
+    }
+    .pin-label {
+      font-size: 13px; color: #4b5563;
+      background: #fff; padding: 4px 10px; border-radius: 6px; white-space: nowrap;
+    }
+    .filter-card h3 { font-size: 20px; font-weight: 700; margin-bottom: 16px; }
+    .checkbox-item {
+      font-size: 16px; color: #4b5563; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px; cursor: pointer;
+    }
+    .checkbox-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: #111827; }
+    .recent-card h3 { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
+    .recent-card h4 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .recent-card p { font-size: 15px; color: #6b7280; margin-bottom: 6px; }
+    .recent-card .meta { font-size: 14px; color: #9ca3af; margin-top: 8px; }
+
+    /* ── Page 2: Report Step 1 ── */
+    .step-card { max-width: 700px; margin: 0 auto; }
+    .step-card h2 { font-size: 25px; font-weight: 700; margin-bottom: 8px; }
+    .step-card .step-desc { font-size: 16px; color: #6b7280; margin-bottom: 24px; }
+    .radio-group { display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
+    .radio-item {
+      display: flex; align-items: center; gap: 14px;
+      background: #f9fafb; border: 2px solid transparent; border-radius: 12px;
+      padding: 18px 20px; cursor: pointer; transition: border-color 0.2s;
+    }
+    .radio-item:hover { border-color: #d1d5db; }
+    .radio-item.selected { border-color: #111827; background: #f3f4f6; }
+    .radio-circle {
+      width: 24px; height: 24px;
+      border: 2px solid #d1d5db; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .radio-circle-inner {
+      width: 14px; height: 14px;
+      background: #111827; border-radius: 50%; display: none;
+    }
+    .radio-item.selected .radio-circle { border-color: #111827; }
+    .radio-item.selected .radio-circle-inner { display: block; }
+    .radio-item span { font-size: 17px; }
+    .step-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; }
+    .step-hint { font-size: 14px; color: #6b7280; }
+
+    /* ── Page 3: Report Step 2 ── */
+    .confirm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
+    .map-confirm {
+      background: #e9ecf0; border-radius: 16px; height: 480px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+    }
+    .location-dot {
+      width: 20px; height: 20px;
+      background: #111827; border: 4px solid #fff; border-radius: 50%;
+      box-shadow: 0 0 0 2px #111827; margin-bottom: 12px;
+    }
+    .location-label { font-size: 17px; font-weight: 700; color: #4b5563; }
+    .confirm-card h3 { font-size: 23px; font-weight: 700; margin-bottom: 24px; }
+    .field-group { margin-bottom: 20px; }
+    .field-label { font-size: 15px; color: #6b7280; margin-bottom: 4px; }
+    .field-value { font-size: 18px; font-weight: 700; }
+    .field-value.regular { font-weight: 400; font-size: 17px; }
+    textarea {
+      width: 100%; min-height: 100px;
+      border: 1px solid #e5e7eb; border-radius: 12px;
+      padding: 14px; font-family: inherit; font-size: 14px;
+      resize: vertical; color: #9ca3af;
+    }
+    textarea:focus { outline: none; border-color: #111827; color: #111827; }
+    .submit-footer { margin-top: 16px; }
+    .submit-footer p { font-size: 14px; color: #6b7280; margin-top: 8px; }
+
+    /* ── Page 4: Report Published ── */
+    .published-grid { display: grid; grid-template-columns: 1fr 420px; gap: 40px; align-items: start; }
+    .map-published {
+      background: #e9ecf0; border-radius: 16px; height: 520px;
+      position: relative; display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .report-pin {
+      display: flex; align-items: center; gap: 12px;
+      background: #fff; padding: 12px 20px; border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .report-pin .pin-icon { width: 32px; height: 32px; }
+    .report-pin-info h4 { font-size: 16px; font-weight: 700; }
+    .report-pin-info p { font-size: 14px; color: #6b7280; }
+    .success-card h3 { font-size: 25px; font-weight: 700; margin-bottom: 12px; }
+    .success-card p { font-size: 16px; color: #6b7280; line-height: 1.6; }
+    .success-card .expire-note { font-size: 14px; color: #9ca3af; margin-top: 16px; }
+    .controls-card h3 { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
+    .controls-card p { font-size: 16px; color: #4b5563; margin-bottom: 8px; }
+
+    /* ── Map decorative lines (SVG) ── */
+    .map-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .map-svg line { stroke: #d1d5db; stroke-width: 1.5; }
+    .map-svg .road { stroke: #fff; stroke-width: 4; }
+  </style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="nav">
+  <span class="nav-logo">SensePath</span>
+  <span class="nav-subtitle" id="nav-subtitle">Community Sensory Map</span>
+  <div class="nav-links">
+    <a href="#" class="active" data-page="map">Community Map</a>
+    <a href="#" data-page="report1">Report Step 1</a>
+    <a href="#" data-page="report2">Report Step 2</a>
+    <a href="#" data-page="published">Published</a>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- Page 1: Community Sensory Map               -->
+<!-- ════════════════════════════════════════════ -->
+<div class="page active" id="map">
+  <p class="page-desc">Recent community reports add real-time context beyond official city datasets.</p>
+  <div class="content-grid">
+    <div class="map-large">
+      <svg class="map-svg" viewBox="0 0 800 520" preserveAspectRatio="none">
+        <line class="road" x1="100" y1="0" x2="250" y2="520"/>
+        <line class="road" x1="350" y1="0" x2="200" y2="520"/>
+        <line class="road" x1="500" y1="0" x2="600" y2="520"/>
+        <line class="road" x1="700" y1="0" x2="450" y2="520"/>
+        <line class="road" x1="0" y1="150" x2="800" y2="180"/>
+        <line class="road" x1="0" y1="350" x2="800" y2="320"/>
+        <line class="road" x1="0" y1="480" x2="800" y2="450"/>
+      </svg>
+      <div class="map-pin" style="top: 22%; left: 15%;">
+        <div class="pin-icon">!</div>
+        <span class="pin-label">Construction</span>
+      </div>
+      <div class="map-pin" style="top: 38%; left: 42%;">
+        <div class="pin-icon">!</div>
+        <span class="pin-label">Loud event</span>
+      </div>
+      <div class="map-pin" style="top: 68%; left: 55%;">
+        <div class="pin-icon">!</div>
+        <span class="pin-label">Roadworks</span>
+      </div>
+      <div class="map-pin" style="top: 72%; left: 22%;">
+        <div class="pin-icon">!</div>
+        <span class="pin-label">Crowd</span>
+      </div>
+    </div>
+    <div class="sidebar-stack">
+      <div class="card-sm filter-card">
+        <h3>Filter reports</h3>
+        <label class="checkbox-item"><input type="checkbox" checked> Construction</label>
+        <label class="checkbox-item"><input type="checkbox" checked> Loud events</label>
+        <label class="checkbox-item"><input type="checkbox" checked> Roadworks</label>
+        <label class="checkbox-item"><input type="checkbox" checked> Crowds</label>
+      </div>
+      <div class="card-sm recent-card">
+        <h3>Recent report</h3>
+        <h4>Loud construction</h4>
+        <p>Swanston Street</p>
+        <p>Reported 8 min ago</p>
+        <p class="meta">Location · time · incident type</p>
+      </div>
+      <button class="btn-primary btn-full" onclick="switchPage('report1')">+ Report sensory issue</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- Page 2: Report Step 1                       -->
+<!-- ════════════════════════════════════════════ -->
+<div class="page" id="report1">
+  <p class="page-desc">Designed to submit a temporary sensory hazard in fewer than three steps.</p>
+  <div class="card step-card">
+    <h2>What did you encounter?</h2>
+    <p class="step-desc">Choose one category.</p>
+    <div class="radio-group">
+      <div class="radio-item selected" onclick="selectRadio(this)">
+        <div class="radio-circle"><div class="radio-circle-inner"></div></div>
+        <span>Loud construction</span>
+      </div>
+      <div class="radio-item" onclick="selectRadio(this)">
+        <div class="radio-circle"><div class="radio-circle-inner"></div></div>
+        <span>Protest / loud event</span>
+      </div>
+      <div class="radio-item" onclick="selectRadio(this)">
+        <div class="radio-circle"><div class="radio-circle-inner"></div></div>
+        <span>Roadworks</span>
+      </div>
+      <div class="radio-item" onclick="selectRadio(this)">
+        <div class="radio-circle"><div class="radio-circle-inner"></div></div>
+        <span>Heavy crowd</span>
+      </div>
+      <div class="radio-item" onclick="selectRadio(this)">
+        <div class="radio-circle"><div class="radio-circle-inner"></div></div>
+        <span>Other sensory issue</span>
+      </div>
+    </div>
+    <div class="step-footer">
+      <span class="step-hint">Step 1: Category → Step 2: Confirm location & submit</span>
+      <button class="btn-primary" onclick="switchPage('report2')">Next</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- Page 3: Report Step 2                       -->
+<!-- ════════════════════════════════════════════ -->
+<div class="page" id="report2">
+  <p class="page-desc">Confirm location, add an optional note, then publish the report.</p>
+  <div class="confirm-grid">
+    <div class="map-confirm">
+      <svg class="map-svg" viewBox="0 0 600 480" preserveAspectRatio="none">
+        <line class="road" x1="80" y1="0" x2="200" y2="480"/>
+        <line class="road" x1="300" y1="0" x2="150" y2="480"/>
+        <line class="road" x1="450" y1="0" x2="500" y2="480"/>
+        <line class="road" x1="0" y1="120" x2="600" y2="140"/>
+        <line class="road" x1="0" y1="350" x2="600" y2="330"/>
+      </svg>
+      <div class="location-dot"></div>
+      <span class="location-label">Current report location</span>
+    </div>
+    <div class="card-sm confirm-card">
+      <h3>Confirm report</h3>
+      <div class="field-group">
+        <p class="field-label">Category</p>
+        <p class="field-value">Loud construction</p>
+      </div>
+      <div class="field-group">
+        <p class="field-label">Location</p>
+        <p class="field-value regular">Swanston Street, Melbourne</p>
+      </div>
+      <div class="field-group">
+        <p class="field-label">Optional note</p>
+        <textarea placeholder="Add useful context..."></textarea>
+      </div>
+      <button class="btn-primary btn-full" onclick="switchPage('published')">Submit report</button>
+      <div class="submit-footer">
+        <p>Reports include timestamp and location metadata.</p>
+        <p>Temporary reports expire automatically.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- Page 4: Report Published                    -->
+<!-- ════════════════════════════════════════════ -->
+<div class="page" id="published">
+  <p class="page-desc">New community reports appear on the sensory map and can help other commuters.</p>
+  <div class="published-grid">
+    <div class="map-published">
+      <svg class="map-svg" viewBox="0 0 800 520" preserveAspectRatio="none">
+        <line class="road" x1="100" y1="0" x2="250" y2="520"/>
+        <line class="road" x1="350" y1="0" x2="200" y2="520"/>
+        <line class="road" x1="500" y1="0" x2="600" y2="520"/>
+        <line class="road" x1="0" y1="150" x2="800" y2="180"/>
+        <line class="road" x1="0" y1="400" x2="800" y2="380"/>
+      </svg>
+      <div class="report-pin">
+        <div class="pin-icon">!</div>
+        <div class="report-pin-info">
+          <h4>Loud construction</h4>
+          <p>Just now · Swanston St</p>
+        </div>
+      </div>
+    </div>
+    <div class="sidebar-stack">
+      <div class="card-sm success-card">
+        <h3>Report submitted</h3>
+        <p>Your report is now visible to nearby commuters.</p>
+        <p class="expire-note">It will expire after the configured period.</p>
+      </div>
+      <div class="card-sm controls-card">
+        <h3>Community map controls</h3>
+        <p>Filter by category</p>
+        <p>View report timestamp</p>
+        <p>Hide expired reports</p>
+        <p>Moderate duplicate / inappropriate reports</p>
+      </div>
+      <button class="btn-primary btn-full" onclick="switchPage('map')">Back to community map</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const subtitles = {
+    map: 'Community Sensory Map',
+    report1: 'Report a Sensory Issue · Step 1 of 2',
+    report2: 'Report a Sensory Issue · Step 2 of 2',
+    published: 'Report Published'
+  };
+
+  function switchPage(pageId) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+    document.getElementById(pageId).classList.add('active');
+    document.querySelector('[data-page="' + pageId + '"]').classList.add('active');
+    document.getElementById('nav-subtitle').textContent = subtitles[pageId];
+  }
+
+  document.querySelectorAll('.nav-links a').forEach(link => {
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      switchPage(link.dataset.page);
+    });
+  });
+
+  function selectRadio(el) {
+    el.closest('.radio-group').querySelectorAll('.radio-item').forEach(item => item.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+</script>
+
+</body>
+</html>

@@ -1,1 +1,7 @@
+# Ignore the .vscode folder, which contains local IDE settings
 .vscode/
+
+# Ignore the .env file, which contains sensitive environment variables
+.env
+.env.*
+!.env.example

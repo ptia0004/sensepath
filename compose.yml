@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: sensepath-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sensepath
+      POSTGRES_USER: sensepath_admin
+      POSTGRES_PASSWORD: sensepath
+    ports:
+      - "5432:5432"
+    volumes:
+      - sensepath_postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+
+volumes:
+  sensepath_postgres_data:

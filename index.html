@@ -298,7 +298,7 @@
         <p class="field-label">Optional note</p>
         <textarea placeholder="Add useful context..."></textarea>
       </div>
-      <button class="btn-primary btn-full" onclick="switchPage('published')">Submit report</button>
+      <button class="btn-primary btn-full" onclick="submitReport()">Submit report</button>
       <div class="submit-footer">
         <p>Reports include timestamp and location metadata.</p>
         <p>Temporary reports expire automatically.</p>
@@ -347,6 +347,9 @@
   </div>
 </div>
 
+
+<script src="security/securityValidation.js"></script>
+
 <script>
   const subtitles = {
     map: 'Community Sensory Map',
@@ -374,6 +377,25 @@
     el.closest('.radio-group').querySelectorAll('.radio-item').forEach(item => item.classList.remove('selected'));
     el.classList.add('selected');
   }
+
+  function submitReport() {
+
+    const note = document.querySelector("#report2 textarea").value;
+
+    const result = SecurityValidator.validateNote(note);
+
+    if (!result.valid) {
+
+        alert(result.message);
+
+        return;
+
+    }
+
+    switchPage("published");
+
+}
+
 </script>
 
 </body>

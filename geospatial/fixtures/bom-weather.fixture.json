@@ -1,0 +1,24 @@
+{
+  "observations": {
+    "header": [
+      {
+        "ID": "95936",
+        "name": "Melbourne Olympic Park"
+      }
+    ],
+    "data": [
+      {
+        "wmo": "95936",
+        "name": "Melbourne Olympic Park",
+        "lat": -37.83,
+        "lon": 144.98,
+        "aifstime_utc": "20260806040000",
+        "air_temp": 13.8,
+        "apparent_t": 11.9,
+        "rain_trace": 0.4,
+        "gust_kmh": 22,
+        "weather": "Light rain"
+      }
+    ]
+  }
+}

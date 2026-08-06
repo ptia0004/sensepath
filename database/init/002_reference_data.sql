@@ -12,7 +12,7 @@ INSERT INTO report_category (category_code, display_name, filter_group, default_
 VALUES
     ('crowds', 'Crowds', 'crowds', interval '2 hours'),
     ('loud', 'Loud event', 'loud', interval '2 hours'),
-    ('roadworks', 'Roadworks', 'roadworks', interval '8 hours'),
-    ('heavy', 'Heavy crowds', 'heavy', interval '1 hour');
+    ('roadworks', 'Roadworks', 'roadworks', interval '2 hours'),
+    ('construction', 'Construction', 'construction', interval '2 hours');
 
 COMMIT;

@@ -9,6 +9,7 @@
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="./geospatial/mapData.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', sans-serif; background: #f7f8fa; color: #111827; }
@@ -95,6 +96,14 @@
     .checkbox-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: #111827; }
     .filter-hint { font-size: 13px; color: #9ca3af; margin-top: 4px; margin-left: 26px; }
 
+    .data-status-card { border-left: 4px solid #059669; }
+    .data-status-card.stale { border-left-color: #b45309; }
+    .data-status-card.unavailable { border-left-color: #b91c1c; }
+    .data-status-card h3 { font-size: 18px; margin-bottom: 8px; }
+    .data-status-card p { color: #4b5563; font-size: 14px; line-height: 1.45; }
+    .data-status-card .last-updated { color: #6b7280; font-size: 13px; margin-top: 4px; }
+    .report-empty { color: #6b7280; font-size: 14px; line-height: 1.45; }
+
     .alert-item {
       padding: 14px 0;
       border-bottom: 1px solid #f3f4f6;
@@ -137,6 +146,9 @@
     }
     .sp-marker.refuge {
       border-color: #059669; background: #ecfdf5; color: #047857; font-size: 12px;
+    }
+    .leaflet-marker-icon:focus, .alert-item:focus, .refuge-item:focus {
+      outline: 3px solid #2563eb; outline-offset: 3px;
     }
 
     /* ── Page 2: Report Step 1 ── */
@@ -233,6 +245,12 @@
         grid-template-columns: 1fr;
       }
       .map-large { height: 420px; }
+      .map-legend { max-height: 190px; overflow-y: auto; }
+    }
+    @media (max-width: 520px) {
+      .nav-links { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+      .nav-links a { padding: 6px 4px; font-size: 12px; text-align: center; }
+      .page-desc { margin-bottom: 24px; }
     }
   </style>
 </head>
@@ -257,12 +275,12 @@
   <p class="page-desc">Live pedestrian stress, predictive alerts, and nearby sensory refuges — plus community reports for real-time context.</p>
   <div class="content-grid">
     <div class="map-large">
-      <div id="community-map"></div>
+      <div id="community-map" role="region" aria-label="Interactive community sensory report map"></div>
       <div class="map-legend">
         <div class="map-legend-row"><span class="legend-dot">C</span> Crowds</div>
         <div class="map-legend-row"><span class="legend-dot">L</span> Loud events</div>
         <div class="map-legend-row"><span class="legend-dot">R</span> Roadworks</div>
-        <div class="map-legend-row"><span class="legend-dot">H</span> Heavy crowds</div>
+        <div class="map-legend-row"><span class="legend-dot">W</span> Construction</div>
         <div class="map-legend-row"><span class="legend-dot refuge">P</span> Park refuge</div>
         <div class="map-legend-row"><span class="legend-dot refuge">L</span> Library refuge</div>
         <div class="map-legend-row"><span class="legend-dot refuge">Q</span> Quiet refuge</div>
@@ -271,6 +289,12 @@
       </div>
     </div>
     <div class="sidebar-stack">
+      <div class="card-sm data-status-card" id="community-data-card">
+        <h3>Community data status</h3>
+        <p id="community-data-status" role="status" aria-live="polite">Checking report data…</p>
+        <p class="last-updated" id="community-data-updated"></p>
+      </div>
+
       <div class="card-sm alert-card">
         <h3>Alerts</h3>
         <div id="alerts-list"></div>
@@ -289,14 +313,14 @@
         <label class="checkbox-item"><input type="checkbox" checked data-filter="crowds"> <strong>C</strong>&nbsp; Crowds</label>
         <label class="checkbox-item"><input type="checkbox" checked data-filter="loud"> <strong>L</strong>&nbsp; Loud events</label>
         <label class="checkbox-item"><input type="checkbox" checked data-filter="roadworks"> <strong>R</strong>&nbsp; Roadworks</label>
-        <label class="checkbox-item"><input type="checkbox" checked data-filter="heavy"> <strong>H</strong>&nbsp; Heavy crowds</label>
+        <label class="checkbox-item"><input type="checkbox" checked data-filter="construction"> <strong>W</strong>&nbsp; Construction</label>
         <label class="checkbox-item" style="margin-top: 8px;">
           <input type="checkbox" checked id="toggle-stress"> Show pedestrian stress zones
         </label>
         <p class="filter-hint">Live (high) · Predicted (medium)</p>
       </div>
 
-      <div class="card-sm recent-card" id="recent-report">
+      <div class="card-sm recent-card" id="recent-report" aria-live="polite">
         <h3>Recent report</h3>
         <h4>—</h4>
         <p>—</p>
@@ -428,25 +452,37 @@
 
 <script>
   const CBD = { lat: -37.8136, lng: 144.9631 };
+  const Geo = window.SensePathGeo;
+  const prototypeStartedAt = new Date();
+  const requestedDataState = new URLSearchParams(window.location.search).get('dataState') || 'live';
+  const supportedDataStates = ['live', 'empty', 'stale', 'unavailable'];
+  const demoDataState = supportedDataStates.includes(requestedDataState) ? requestedDataState : 'live';
+  const lastUpdatedMinutes = demoDataState === 'stale' ? 35 : demoDataState === 'unavailable' ? 45 : 4;
+  const communityLastUpdatedAt = new Date(prototypeStartedAt.getTime() - lastUpdatedMinutes * 60000);
+  const communityDataState = Geo.dataState(communityLastUpdatedAt, {
+    now: prototypeStartedAt,
+    serviceAvailable: demoDataState !== 'unavailable'
+  });
 
-  /* ── Mock data (simulated; swap for API later) ── */
-  function jitter(base, spread) {
-    return base + (Math.random() - 0.5) * spread;
+  /* ── Reproducible prototype data; adapters and fixtures live in /geospatial ── */
+  function reportTime(minutesAgo) {
+    return new Date(prototypeStartedAt.getTime() - minutesAgo * 60000).toISOString();
   }
 
   const REPORT_TYPES = {
     crowds: { label: 'Crowds', filter: 'crowds', letter: 'C' },
-    loud: { label: 'Loud event', filter: 'loud', letter: 'L' },
+    loud: { label: 'Loud events', filter: 'loud', letter: 'L' },
     roadworks: { label: 'Roadworks', filter: 'roadworks', letter: 'R' },
-    heavy: { label: 'Heavy crowds', filter: 'heavy', letter: 'H' }
+    construction: { label: 'Construction', filter: 'construction', letter: 'W' }
   };
 
   const mockReports = [
-    { id: 'r1', type: 'crowds', title: 'Crowds', street: 'Swanston Street', minsAgo: 8, lat: -37.8142, lng: 144.9635 },
-    { id: 'r2', type: 'loud', title: 'Street performance', street: 'Federation Square', minsAgo: 22, lat: -37.8182, lng: 144.9689 },
-    { id: 'r3', type: 'roadworks', title: 'Roadworks', street: 'Flinders Street', minsAgo: 35, lat: -37.8180, lng: 144.9660 },
-    { id: 'r4', type: 'heavy', title: 'Heavy crowds', street: 'Bourke Street Mall', minsAgo: 12, lat: -37.8135, lng: 144.9645 },
-    { id: 'r5', type: 'crowds', title: 'Busy footpath', street: 'Collins Street', minsAgo: 48, lat: -37.8155, lng: 144.9610 }
+    { id: 'r1', submissionKey: 'demo-r1', type: 'crowds', approximateLocation: 'Swanston Street', createdAt: reportTime(8), lat: -37.8142, lng: 144.9635 },
+    { id: 'r2', submissionKey: 'demo-r2', type: 'loud', approximateLocation: 'Federation Square', createdAt: reportTime(22), lat: -37.8182, lng: 144.9689 },
+    { id: 'r3', submissionKey: 'demo-r3', type: 'roadworks', approximateLocation: 'Flinders Street', createdAt: reportTime(35), lat: -37.8180, lng: 144.9660 },
+    { id: 'r4', submissionKey: 'demo-r4', type: 'construction', approximateLocation: 'Bourke Street Mall', createdAt: reportTime(12), lat: -37.8135, lng: 144.9645 },
+    { id: 'r5', submissionKey: 'demo-r5', type: 'crowds', approximateLocation: 'Collins Street', createdAt: reportTime(48), lat: -37.8155, lng: 144.9610 },
+    { id: 'expired-demo', submissionKey: 'expired-demo', type: 'construction', approximateLocation: 'Expired test report', createdAt: reportTime(130), lat: -37.8120, lng: 144.9600 }
   ];
 
   const mockRefuges = [
@@ -468,28 +504,31 @@
   function buildAlerts() {
     const high = mockStressZones.filter(z => z.level === 'high');
     const pick = high[Math.floor(Math.random() * high.length)] || mockStressZones[0];
-    const pred = mockStressZones[Math.floor(Math.random() * mockStressZones.length)];
-    const hour = new Date();
-    hour.setMinutes(0, 0, 0);
-    hour.setHours(hour.getHours() + 1);
-    const peakLabel = hour.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
     return [
       {
         kind: 'realtime',
         title: pick.name + ' — high pedestrian stress (live)',
         body: 'Pedestrian volume is elevated. Consider a quieter route or nearby refuge.',
-        meta: 'Simulated · updated just now',
+        meta: 'City of Melbourne fixture · observed just now',
         lat: pick.lat,
         lng: pick.lng
       },
       {
+        kind: 'realtime',
+        title: 'Route 96 tram diversion',
+        body: 'A decoded GTFS-Realtime fixture shows temporary works affecting the route.',
+        meta: 'Transport Victoria GTFS-Realtime fixture · route and observed time retained',
+        lat: -37.8128,
+        lng: 144.9634
+      },
+      {
         kind: 'predictive',
-        title: pred.name + ' — medium pedestrian stress (predicted)',
-        body: 'Historical hourly trends suggest rising stress within the next hour (around ' + peakLabel + ').',
-        meta: 'Predicted from historical pedestrian patterns',
-        lat: pred.lat,
-        lng: pred.lng
+        title: 'Light rain weather context',
+        body: 'A BOM observation fixture provides rain and temperature context; missing values remain unavailable.',
+        meta: 'Bureau of Meteorology fixture · station and observed time retained',
+        lat: -37.8183,
+        lng: 144.9671
       }
     ];
   }
@@ -544,8 +583,10 @@
     reportLayer = L.layerGroup().addTo(map);
     stressLayer = L.layerGroup().addTo(map);
     refugeLayer = L.layerGroup();
+    map.on('moveend', renderReports);
 
     renderStressZones();
+    renderCommunityDataState();
     renderReports();
     renderRefuges();
     renderAlerts();
@@ -581,23 +622,65 @@
     return filters;
   }
 
+  function currentMapBounds() {
+    if (!map) return null;
+    const bounds = map.getBounds();
+    return {
+      south: bounds.getSouth(), north: bounds.getNorth(),
+      west: bounds.getWest(), east: bounds.getEast()
+    };
+  }
+
+  function activeReports(options) {
+    if (demoDataState === 'empty' || communityDataState.status === 'unavailable') return [];
+    return Geo.activeCommunityReports(mockReports, {
+      now: new Date(),
+      bounds: options && options.visibleOnly ? currentMapBounds() : null
+    });
+  }
+
+  function renderCommunityDataState() {
+    const card = document.getElementById('community-data-card');
+    const status = document.getElementById('community-data-status');
+    const updated = document.getElementById('community-data-updated');
+    card.classList.remove('stale', 'unavailable');
+    if (communityDataState.status !== 'live') card.classList.add(communityDataState.status);
+    status.textContent = communityDataState.label;
+    updated.textContent = 'Last updated ' + communityLastUpdatedAt.toLocaleString([], {
+      hour: 'numeric', minute: '2-digit', day: 'numeric', month: 'short'
+    });
+  }
+
   function renderReports() {
     reportLayer.clearLayers();
     reportMarkers = {};
     const filters = activeFilters();
+    const reports = Geo.filterCommunityReports(activeReports({ visibleOnly: true }), filters);
 
-    mockReports.forEach(function (r) {
-      if (!filters[r.type]) return;
+    reports.forEach(function (r) {
+      const label = REPORT_TYPES[r.type].label;
+      const age = Geo.formatAge(r.createdAt, new Date());
       const m = L.marker([r.lat, r.lng], {
-        icon: markerIcon(REPORT_TYPES[r.type].letter)
+        icon: markerIcon(REPORT_TYPES[r.type].letter),
+        keyboard: true,
+        title: label + ' community report at ' + r.approximateLocation,
+        alt: label + ' community report marker',
+        riseOnHover: true
       }).bindPopup(
-        '<strong>' + r.title + '</strong><br>' +
-        r.street + '<br>' +
-        'Reported ' + r.minsAgo + ' min ago'
+        '<strong>' + Geo.escapeHtml(label) + '</strong><br>' +
+        Geo.escapeHtml(r.approximateLocation) + '<br>' +
+        Geo.escapeHtml(age) + '<br>' +
+        '<span>Community report</span>',
+        { maxWidth: 260 }
       );
       m.addTo(reportLayer);
+      if (m.getElement()) {
+        m.getElement().setAttribute('aria-label', label + ' community report at ' + r.approximateLocation + ', ' + age);
+      }
       reportMarkers[r.id] = m;
     });
+
+    updateRecentReport();
   }
 
   function renderRefuges() {
@@ -605,12 +688,16 @@
     refugeMarkers = {};
     mockRefuges.forEach(function (f) {
       const m = L.marker([f.lat, f.lng], {
-        icon: markerIcon(refugeLabel(f.type), 'refuge')
+        icon: markerIcon(refugeLabel(f.type), 'refuge'),
+        keyboard: true,
+        title: f.name + ' sensory refuge',
+        alt: f.name + ' refuge marker'
       }).bindPopup(
         '<strong>' + f.name + '</strong><br>' +
         typeLabel(f.type) + ' · ~' + f.distanceM + ' m'
       );
       m.addTo(refugeLayer);
+      if (m.getElement()) m.getElement().setAttribute('aria-label', f.name + ' sensory refuge');
       refugeMarkers[f.id] = m;
     });
   }
@@ -620,7 +707,7 @@
     const el = document.getElementById('alerts-list');
     el.innerHTML = alerts.map(function (a) {
       return (
-        '<div class="alert-item" data-lat="' + a.lat + '" data-lng="' + a.lng + '">' +
+        '<div class="alert-item" tabindex="0" role="button" data-lat="' + a.lat + '" data-lng="' + a.lng + '">' +
           '<span class="alert-badge ' + a.kind + '">' + (a.kind === 'realtime' ? 'Live' : 'Predicted') + '</span>' +
           '<h4>' + a.title + '</h4>' +
           '<p>' + a.body + '</p>' +
@@ -635,6 +722,12 @@
         if (!map) return;
         map.flyTo([+item.dataset.lat, +item.dataset.lng], 16);
       });
+      item.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          item.click();
+        }
+      });
     });
   }
 
@@ -643,7 +736,7 @@
     const sorted = mockRefuges.slice().sort(function (a, b) { return a.distanceM - b.distanceM; });
     list.innerHTML = sorted.map(function (f) {
       return (
-        '<div class="refuge-item" data-id="' + f.id + '">' +
+        '<div class="refuge-item" tabindex="0" role="button" data-id="' + f.id + '">' +
           '<h4>' + f.name + '</h4>' +
           '<p>' + typeLabel(f.type) + ' · ~' + f.distanceM + ' m away</p>' +
         '</div>'
@@ -660,18 +753,37 @@
         map.flyTo([f.lat, f.lng], 17);
         if (refugeMarkers[id]) refugeMarkers[id].openPopup();
       });
+      item.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          item.click();
+        }
+      });
     });
   }
 
   function updateRecentReport() {
-    const recent = mockReports.slice().sort(function (a, b) { return a.minsAgo - b.minsAgo; })[0];
+    const recent = activeReports()[0];
     const card = document.getElementById('recent-report');
-    if (!recent) return;
-    card.querySelector('h4').textContent = recent.title;
-    card.querySelectorAll('p')[0].textContent = recent.street;
-    card.querySelectorAll('p')[1].textContent = 'Reported ' + recent.minsAgo + ' min ago';
+    const heading = card.querySelector('h4');
+    const paragraphs = card.querySelectorAll('p');
+    if (!recent) {
+      heading.textContent = communityDataState.status === 'unavailable'
+        ? 'Community reports unavailable'
+        : 'No recent reports';
+      paragraphs[0].textContent = communityDataState.status === 'unavailable'
+        ? 'The map remains available while the report service recovers.'
+        : 'There are no active reports in the current two-hour window.';
+      paragraphs[1].textContent = 'You can still browse the map and sensory refuges.';
+      card.querySelector('.meta').textContent = 'Last updated ' + communityLastUpdatedAt.toLocaleString();
+      return;
+    }
+    const age = Geo.formatAge(recent.createdAt, new Date());
+    heading.textContent = REPORT_TYPES[recent.type].label;
+    paragraphs[0].textContent = recent.approximateLocation;
+    paragraphs[1].textContent = age;
     card.querySelector('.meta').textContent =
-      recent.street + ' · ' + recent.minsAgo + ' min ago · ' + REPORT_TYPES[recent.type].label;
+      recent.approximateLocation + ' · ' + age + ' · Community report';
   }
 
   function setRefugesVisible(on) {
@@ -739,6 +851,10 @@
       if (mapReady) renderReports();
     });
   });
+
+  window.setInterval(function () {
+    if (mapReady) renderReports();
+  }, 60000);
 
   // Boot map on first load
   initMap();

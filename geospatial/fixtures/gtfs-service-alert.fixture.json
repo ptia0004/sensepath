@@ -1,0 +1,38 @@
+{
+  "header": {
+    "gtfs_realtime_version": "2.0",
+    "incrementality": "FULL_DATASET",
+    "timestamp": "2026-08-06T04:00:00Z"
+  },
+  "entity": [
+    {
+      "id": "sensepath-demo-alert-1",
+      "alert": {
+        "active_period": [
+          {
+            "start": "2026-08-06T03:55:00Z",
+            "end": "2026-08-06T05:00:00Z"
+          }
+        ],
+        "informed_entity": [
+          {
+            "route_id": "96",
+            "stop_id": "1234"
+          }
+        ],
+        "cause": "CONSTRUCTION",
+        "effect": "DETOUR",
+        "header_text": {
+          "translation": [
+            { "text": "Route 96 tram diversion", "language": "en" }
+          ]
+        },
+        "description_text": {
+          "translation": [
+            { "text": "Temporary diversion near Bourke Street due to works.", "language": "en" }
+          ]
+        }
+      }
+    }
+  ]
+}

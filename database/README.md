@@ -14,6 +14,12 @@ docker compose exec postgres psql -U sensepath_admin -d sensepath -c "SELECT pla
 
 Initialization imports the CSV files only when the Docker volume is first created. Future schema changes must be added as numbered migration files and executed explicitly against existing databases.
 
+For an existing onboarding database, apply the report-category alignment once:
+
+```powershell
+Get-Content database/migrations/004_align_onboarding_report_categories.sql | docker compose exec -T postgres psql -U sensepath_admin -d sensepath -v ON_ERROR_STOP=1
+```
+
 ## Main model
 
 - `refuge_place`: buildings, landmarks and street furniture displayed as sensory refuges.
@@ -58,6 +64,15 @@ Expire stale rows from an application scheduler:
 
 ```sql
 SELECT expire_community_reports();
+```
+
+All onboarding MVP report categories use the two-hour expiry documented in US2.2 and T-DS2-02.
+The trigger derives `expires_at` from the category dictionary, and the active view excludes expired rows.
+
+Lifecycle acceptance test (run after the container is healthy):
+
+```powershell
+Get-Content database/tests/community_report_lifecycle.sql | docker compose exec -T postgres psql -U sensepath_admin -d sensepath -v ON_ERROR_STOP=1
 ```
 
 ## Production / Neon

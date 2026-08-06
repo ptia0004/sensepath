@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SensePath</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', sans-serif; background: #f7f8fa; color: #111827; }
@@ -52,34 +56,88 @@
     /* ── Page 1: Community Sensory Map ── */
     .map-large {
       background: #e9ecf0; border-radius: 16px;
-      height: 520px; position: relative; overflow: hidden;
+      height: 640px; position: relative; overflow: hidden;
+      z-index: 0;
     }
-    .map-lines {
-      position: absolute; inset: 0;
+    #community-map {
+      width: 100%; height: 100%;
+      border-radius: 16px;
+      font-family: inherit;
     }
-    .map-pin {
-      position: absolute; display: flex; align-items: center; gap: 8px;
+    .map-legend {
+      position: absolute; left: 12px; bottom: 12px; z-index: 1000;
+      background: rgba(255,255,255,0.95); border-radius: 10px;
+      padding: 10px 14px; font-size: 12px; color: #4b5563;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      display: flex; flex-direction: column; gap: 6px;
     }
-    .pin-icon {
-      width: 36px; height: 36px;
-      background: #fff; border: 2px solid #111827; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 16px;
+    .map-legend-row { display: flex; align-items: center; gap: 8px; }
+    .legend-dot {
+      width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+      border: 2px solid #111827; background: #fff;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700; color: #111827; line-height: 1;
     }
-    .pin-label {
-      font-size: 13px; color: #4b5563;
-      background: #fff; padding: 4px 10px; border-radius: 6px; white-space: nowrap;
-    }
-    .filter-card h3 { font-size: 20px; font-weight: 700; margin-bottom: 16px; }
+    .legend-dot.refuge { border-color: #059669; background: #d1fae5; color: #047857; }
+    .legend-dot.stress-high { border: none; background: rgba(185, 28, 28, 0.45); border-radius: 3px; width: 12px; height: 12px; }
+    .legend-dot.stress-med { border: none; background: rgba(180, 83, 9, 0.4); border-radius: 3px; width: 12px; height: 12px; }
+
+    .filter-card h3,
+    .alert-card h3,
+    .refuge-card h3,
+    .recent-card h3 { font-size: 20px; font-weight: 700; margin-bottom: 16px; }
+
     .checkbox-item {
       font-size: 16px; color: #4b5563; margin-bottom: 12px;
       display: flex; align-items: center; gap: 8px; cursor: pointer;
     }
+    .checkbox-item:last-child { margin-bottom: 0; }
     .checkbox-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: #111827; }
-    .recent-card h3 { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
+    .filter-hint { font-size: 13px; color: #9ca3af; margin-top: 4px; margin-left: 26px; }
+
+    .alert-item {
+      padding: 14px 0;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .alert-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .alert-item:first-child { padding-top: 0; }
+    .alert-badge {
+      display: inline-block;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
+      text-transform: uppercase; padding: 3px 8px; border-radius: 4px;
+      margin-bottom: 6px;
+    }
+    .alert-badge.realtime { background: #fee2e2; color: #991b1b; }
+    .alert-badge.predictive { background: #fef3c7; color: #92400e; }
+    .alert-item h4 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .alert-item p { font-size: 14px; color: #6b7280; line-height: 1.45; }
+    .alert-item .meta { font-size: 13px; color: #9ca3af; margin-top: 6px; }
+
+    .refuge-list { margin-top: 14px; display: none; }
+    .refuge-list.visible { display: block; }
+    .refuge-item {
+      padding: 12px 0; border-bottom: 1px solid #f3f4f6; cursor: pointer;
+    }
+    .refuge-item:last-child { border-bottom: none; }
+    .refuge-item:hover h4 { color: #059669; }
+    .refuge-item h4 { font-size: 15px; font-weight: 700; margin-bottom: 2px; transition: color 0.15s; }
+    .refuge-item p { font-size: 13px; color: #6b7280; }
+
     .recent-card h4 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
     .recent-card p { font-size: 15px; color: #6b7280; margin-bottom: 6px; }
     .recent-card .meta { font-size: 14px; color: #9ca3af; margin-top: 8px; }
+
+    /* Leaflet custom markers */
+    .sp-marker {
+      width: 32px; height: 32px;
+      background: #fff; border: 2px solid #111827; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 14px; color: #111827;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    }
+    .sp-marker.refuge {
+      border-color: #059669; background: #ecfdf5; color: #047857; font-size: 12px;
+    }
 
     /* ── Page 2: Report Step 1 ── */
     .step-card { max-width: 700px; margin: 0 auto; }
@@ -148,7 +206,12 @@
       background: #fff; padding: 12px 20px; border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
-    .report-pin .pin-icon { width: 32px; height: 32px; }
+    .report-pin .pin-icon {
+      width: 32px; height: 32px;
+      background: #fff; border: 2px solid #111827; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 16px;
+    }
     .report-pin-info h4 { font-size: 16px; font-weight: 700; }
     .report-pin-info p { font-size: 14px; color: #6b7280; }
     .success-card h3 { font-size: 25px; font-weight: 700; margin-bottom: 12px; }
@@ -161,6 +224,16 @@
     .map-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
     .map-svg line { stroke: #d1d5db; stroke-width: 1.5; }
     .map-svg .road { stroke: #fff; stroke-width: 4; }
+
+    @media (max-width: 960px) {
+      .nav { padding: 16px 24px; flex-wrap: wrap; }
+      .nav-links { margin-left: 0; width: 100%; }
+      .page { padding: 24px; }
+      .content-grid, .published-grid, .confirm-grid {
+        grid-template-columns: 1fr;
+      }
+      .map-large { height: 420px; }
+    }
   </style>
 </head>
 <body>
@@ -181,50 +254,56 @@
 <!-- Page 1: Community Sensory Map               -->
 <!-- ════════════════════════════════════════════ -->
 <div class="page active" id="map">
-  <p class="page-desc">Recent community reports add real-time context beyond official city datasets.</p>
+  <p class="page-desc">Live pedestrian stress, predictive alerts, and nearby sensory refuges — plus community reports for real-time context.</p>
   <div class="content-grid">
     <div class="map-large">
-      <svg class="map-svg" viewBox="0 0 800 520" preserveAspectRatio="none">
-        <line class="road" x1="100" y1="0" x2="250" y2="520"/>
-        <line class="road" x1="350" y1="0" x2="200" y2="520"/>
-        <line class="road" x1="500" y1="0" x2="600" y2="520"/>
-        <line class="road" x1="700" y1="0" x2="450" y2="520"/>
-        <line class="road" x1="0" y1="150" x2="800" y2="180"/>
-        <line class="road" x1="0" y1="350" x2="800" y2="320"/>
-        <line class="road" x1="0" y1="480" x2="800" y2="450"/>
-      </svg>
-      <div class="map-pin" style="top: 22%; left: 15%;">
-        <div class="pin-icon">!</div>
-        <span class="pin-label">Construction</span>
-      </div>
-      <div class="map-pin" style="top: 38%; left: 42%;">
-        <div class="pin-icon">!</div>
-        <span class="pin-label">Loud event</span>
-      </div>
-      <div class="map-pin" style="top: 68%; left: 55%;">
-        <div class="pin-icon">!</div>
-        <span class="pin-label">Roadworks</span>
-      </div>
-      <div class="map-pin" style="top: 72%; left: 22%;">
-        <div class="pin-icon">!</div>
-        <span class="pin-label">Crowd</span>
+      <div id="community-map"></div>
+      <div class="map-legend">
+        <div class="map-legend-row"><span class="legend-dot">C</span> Crowds</div>
+        <div class="map-legend-row"><span class="legend-dot">L</span> Loud events</div>
+        <div class="map-legend-row"><span class="legend-dot">R</span> Roadworks</div>
+        <div class="map-legend-row"><span class="legend-dot">H</span> Heavy crowds</div>
+        <div class="map-legend-row"><span class="legend-dot refuge">P</span> Park refuge</div>
+        <div class="map-legend-row"><span class="legend-dot refuge">L</span> Library refuge</div>
+        <div class="map-legend-row"><span class="legend-dot refuge">Q</span> Quiet refuge</div>
+        <div class="map-legend-row"><span class="legend-dot stress-high"></span> High pedestrian stress (live)</div>
+        <div class="map-legend-row"><span class="legend-dot stress-med"></span> Medium pedestrian stress (predicted)</div>
       </div>
     </div>
     <div class="sidebar-stack">
+      <div class="card-sm alert-card">
+        <h3>Alerts</h3>
+        <div id="alerts-list"></div>
+      </div>
+
+      <div class="card-sm refuge-card">
+        <h3>Sensory refuges</h3>
+        <label class="checkbox-item">
+          <input type="checkbox" id="toggle-refuges"> Show nearby parks, libraries &amp; quiet spaces
+        </label>
+        <div class="refuge-list" id="refuge-list"></div>
+      </div>
+
       <div class="card-sm filter-card">
         <h3>Filter reports</h3>
-        <label class="checkbox-item"><input type="checkbox" checked> Construction</label>
-        <label class="checkbox-item"><input type="checkbox" checked> Loud events</label>
-        <label class="checkbox-item"><input type="checkbox" checked> Roadworks</label>
-        <label class="checkbox-item"><input type="checkbox" checked> Crowds</label>
+        <label class="checkbox-item"><input type="checkbox" checked data-filter="crowds"> <strong>C</strong>&nbsp; Crowds</label>
+        <label class="checkbox-item"><input type="checkbox" checked data-filter="loud"> <strong>L</strong>&nbsp; Loud events</label>
+        <label class="checkbox-item"><input type="checkbox" checked data-filter="roadworks"> <strong>R</strong>&nbsp; Roadworks</label>
+        <label class="checkbox-item"><input type="checkbox" checked data-filter="heavy"> <strong>H</strong>&nbsp; Heavy crowds</label>
+        <label class="checkbox-item" style="margin-top: 8px;">
+          <input type="checkbox" checked id="toggle-stress"> Show pedestrian stress zones
+        </label>
+        <p class="filter-hint">Live (high) · Predicted (medium)</p>
       </div>
-      <div class="card-sm recent-card">
+
+      <div class="card-sm recent-card" id="recent-report">
         <h3>Recent report</h3>
-        <h4>Loud construction</h4>
-        <p>Swanston Street</p>
-        <p>Reported 8 min ago</p>
+        <h4>—</h4>
+        <p>—</p>
+        <p>—</p>
         <p class="meta">Location · time · incident type</p>
       </div>
+
       <button class="btn-primary btn-full" onclick="switchPage('report1')">+ Report sensory issue</button>
     </div>
   </div>
@@ -241,7 +320,7 @@
     <div class="radio-group">
       <div class="radio-item selected" onclick="selectRadio(this)">
         <div class="radio-circle"><div class="radio-circle-inner"></div></div>
-        <span>Loud construction</span>
+        <span>Crowds</span>
       </div>
       <div class="radio-item" onclick="selectRadio(this)">
         <div class="radio-circle"><div class="radio-circle-inner"></div></div>
@@ -253,7 +332,7 @@
       </div>
       <div class="radio-item" onclick="selectRadio(this)">
         <div class="radio-circle"><div class="radio-circle-inner"></div></div>
-        <span>Heavy crowd</span>
+        <span>Heavy crowds</span>
       </div>
       <div class="radio-item" onclick="selectRadio(this)">
         <div class="radio-circle"><div class="radio-circle-inner"></div></div>
@@ -288,7 +367,7 @@
       <h3>Confirm report</h3>
       <div class="field-group">
         <p class="field-label">Category</p>
-        <p class="field-value">Loud construction</p>
+        <p class="field-value">Crowds</p>
       </div>
       <div class="field-group">
         <p class="field-label">Location</p>
@@ -298,7 +377,7 @@
         <p class="field-label">Optional note</p>
         <textarea placeholder="Add useful context..."></textarea>
       </div>
-      <button class="btn-primary btn-full" onclick="submitReport()">Submit report</button>
+      <button class="btn-primary btn-full" onclick="switchPage('published')">Submit report</button>
       <div class="submit-footer">
         <p>Reports include timestamp and location metadata.</p>
         <p>Temporary reports expire automatically.</p>
@@ -324,7 +403,7 @@
       <div class="report-pin">
         <div class="pin-icon">!</div>
         <div class="report-pin-info">
-          <h4>Loud construction</h4>
+          <h4>Crowds</h4>
           <p>Just now · Swanston St</p>
         </div>
       </div>
@@ -347,10 +426,274 @@
   </div>
 </div>
 
-
-<script src="security/securityValidation.js"></script>
-
 <script>
+  const CBD = { lat: -37.8136, lng: 144.9631 };
+
+  /* ── Mock data (simulated; swap for API later) ── */
+  function jitter(base, spread) {
+    return base + (Math.random() - 0.5) * spread;
+  }
+
+  const REPORT_TYPES = {
+    crowds: { label: 'Crowds', filter: 'crowds', letter: 'C' },
+    loud: { label: 'Loud event', filter: 'loud', letter: 'L' },
+    roadworks: { label: 'Roadworks', filter: 'roadworks', letter: 'R' },
+    heavy: { label: 'Heavy crowds', filter: 'heavy', letter: 'H' }
+  };
+
+  const mockReports = [
+    { id: 'r1', type: 'crowds', title: 'Crowds', street: 'Swanston Street', minsAgo: 8, lat: -37.8142, lng: 144.9635 },
+    { id: 'r2', type: 'loud', title: 'Street performance', street: 'Federation Square', minsAgo: 22, lat: -37.8182, lng: 144.9689 },
+    { id: 'r3', type: 'roadworks', title: 'Roadworks', street: 'Flinders Street', minsAgo: 35, lat: -37.8180, lng: 144.9660 },
+    { id: 'r4', type: 'heavy', title: 'Heavy crowds', street: 'Bourke Street Mall', minsAgo: 12, lat: -37.8135, lng: 144.9645 },
+    { id: 'r5', type: 'crowds', title: 'Busy footpath', street: 'Collins Street', minsAgo: 48, lat: -37.8155, lng: 144.9610 }
+  ];
+
+  const mockRefuges = [
+    { id: 'f1', name: 'State Library of Victoria', type: 'library', lat: -37.8098, lng: 144.9652, distanceM: 420 },
+    { id: 'f2', name: 'Flagstaff Gardens', type: 'park', lat: -37.8106, lng: 144.9544, distanceM: 780 },
+    { id: 'f3', name: 'Birrarung Marr', type: 'park', lat: -37.8190, lng: 144.9730, distanceM: 950 },
+    { id: 'f4', name: 'City Library', type: 'library', lat: -37.8148, lng: 144.9665, distanceM: 310 },
+    { id: 'f5', name: 'Queen Victoria Gardens', type: 'park', lat: -37.8225, lng: 144.9715, distanceM: 1200 },
+    { id: 'f6', name: 'Quiet foyer · Town Hall', type: 'quiet', lat: -37.8152, lng: 144.9668, distanceM: 260 }
+  ];
+
+  const mockStressZones = [
+    { id: 's1', name: 'Swanston St corridor', level: 'high', lat: -37.8145, lng: 144.9638, radius: 180 },
+    { id: 's2', name: 'Bourke Street Mall', level: 'high', lat: -37.8136, lng: 144.9648, radius: 140 },
+    { id: 's3', name: 'Flinders St Station', level: 'medium', lat: -37.8183, lng: 144.9671, radius: 200 },
+    { id: 's4', name: 'Spencer St precinct', level: 'medium', lat: -37.8148, lng: 144.9535, radius: 160 }
+  ];
+
+  function buildAlerts() {
+    const high = mockStressZones.filter(z => z.level === 'high');
+    const pick = high[Math.floor(Math.random() * high.length)] || mockStressZones[0];
+    const pred = mockStressZones[Math.floor(Math.random() * mockStressZones.length)];
+    const hour = new Date();
+    hour.setMinutes(0, 0, 0);
+    hour.setHours(hour.getHours() + 1);
+    const peakLabel = hour.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+    return [
+      {
+        kind: 'realtime',
+        title: pick.name + ' — high pedestrian stress (live)',
+        body: 'Pedestrian volume is elevated. Consider a quieter route or nearby refuge.',
+        meta: 'Simulated · updated just now',
+        lat: pick.lat,
+        lng: pick.lng
+      },
+      {
+        kind: 'predictive',
+        title: pred.name + ' — medium pedestrian stress (predicted)',
+        body: 'Historical hourly trends suggest rising stress within the next hour (around ' + peakLabel + ').',
+        meta: 'Predicted from historical pedestrian patterns',
+        lat: pred.lat,
+        lng: pred.lng
+      }
+    ];
+  }
+
+  /* ── Map state ── */
+  let map = null;
+  let reportLayer = null;
+  let refugeLayer = null;
+  let stressLayer = null;
+  let reportMarkers = {};
+  let refugeMarkers = {};
+  let mapReady = false;
+
+  function markerIcon(html, className) {
+    return L.divIcon({
+      className: '',
+      html: '<div class="sp-marker ' + (className || '') + '">' + html + '</div>',
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+      popupAnchor: [0, -16]
+    });
+  }
+
+  function refugeLabel(type) {
+    if (type === 'library') return 'L';
+    if (type === 'park') return 'P';
+    return 'Q';
+  }
+
+  function typeLabel(type) {
+    if (type === 'library') return 'Library';
+    if (type === 'park') return 'Park';
+    return 'Quiet space';
+  }
+
+  function initMap() {
+    if (mapReady) {
+      setTimeout(function () { map.invalidateSize(); }, 50);
+      return;
+    }
+
+    map = L.map('community-map', {
+      zoomControl: true,
+      attributionControl: true
+    }).setView([CBD.lat, CBD.lng], 15);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    reportLayer = L.layerGroup().addTo(map);
+    stressLayer = L.layerGroup().addTo(map);
+    refugeLayer = L.layerGroup();
+
+    renderStressZones();
+    renderReports();
+    renderRefuges();
+    renderAlerts();
+    renderRefugeList();
+    updateRecentReport();
+
+    mapReady = true;
+    setTimeout(function () { map.invalidateSize(); }, 100);
+  }
+
+  function renderStressZones() {
+    stressLayer.clearLayers();
+    mockStressZones.forEach(function (z) {
+      const isHigh = z.level === 'high';
+      L.circle([z.lat, z.lng], {
+        radius: z.radius,
+        color: isHigh ? '#991b1b' : '#b45309',
+        weight: 1,
+        fillColor: isHigh ? '#b91c1c' : '#d97706',
+        fillOpacity: isHigh ? 0.28 : 0.2
+      }).bindPopup(
+        '<strong>' + z.name + '</strong><br>' +
+        (isHigh ? 'High pedestrian stress (live)' : 'Medium pedestrian stress (predicted)')
+      ).addTo(stressLayer);
+    });
+  }
+
+  function activeFilters() {
+    const filters = {};
+    document.querySelectorAll('[data-filter]').forEach(function (input) {
+      filters[input.dataset.filter] = input.checked;
+    });
+    return filters;
+  }
+
+  function renderReports() {
+    reportLayer.clearLayers();
+    reportMarkers = {};
+    const filters = activeFilters();
+
+    mockReports.forEach(function (r) {
+      if (!filters[r.type]) return;
+      const m = L.marker([r.lat, r.lng], {
+        icon: markerIcon(REPORT_TYPES[r.type].letter)
+      }).bindPopup(
+        '<strong>' + r.title + '</strong><br>' +
+        r.street + '<br>' +
+        'Reported ' + r.minsAgo + ' min ago'
+      );
+      m.addTo(reportLayer);
+      reportMarkers[r.id] = m;
+    });
+  }
+
+  function renderRefuges() {
+    refugeLayer.clearLayers();
+    refugeMarkers = {};
+    mockRefuges.forEach(function (f) {
+      const m = L.marker([f.lat, f.lng], {
+        icon: markerIcon(refugeLabel(f.type), 'refuge')
+      }).bindPopup(
+        '<strong>' + f.name + '</strong><br>' +
+        typeLabel(f.type) + ' · ~' + f.distanceM + ' m'
+      );
+      m.addTo(refugeLayer);
+      refugeMarkers[f.id] = m;
+    });
+  }
+
+  function renderAlerts() {
+    const alerts = buildAlerts();
+    const el = document.getElementById('alerts-list');
+    el.innerHTML = alerts.map(function (a) {
+      return (
+        '<div class="alert-item" data-lat="' + a.lat + '" data-lng="' + a.lng + '">' +
+          '<span class="alert-badge ' + a.kind + '">' + (a.kind === 'realtime' ? 'Live' : 'Predicted') + '</span>' +
+          '<h4>' + a.title + '</h4>' +
+          '<p>' + a.body + '</p>' +
+          '<p class="meta">' + a.meta + '</p>' +
+        '</div>'
+      );
+    }).join('');
+
+    el.querySelectorAll('.alert-item').forEach(function (item) {
+      item.style.cursor = 'pointer';
+      item.addEventListener('click', function () {
+        if (!map) return;
+        map.flyTo([+item.dataset.lat, +item.dataset.lng], 16);
+      });
+    });
+  }
+
+  function renderRefugeList() {
+    const list = document.getElementById('refuge-list');
+    const sorted = mockRefuges.slice().sort(function (a, b) { return a.distanceM - b.distanceM; });
+    list.innerHTML = sorted.map(function (f) {
+      return (
+        '<div class="refuge-item" data-id="' + f.id + '">' +
+          '<h4>' + f.name + '</h4>' +
+          '<p>' + typeLabel(f.type) + ' · ~' + f.distanceM + ' m away</p>' +
+        '</div>'
+      );
+    }).join('');
+
+    list.querySelectorAll('.refuge-item').forEach(function (item) {
+      item.addEventListener('click', function () {
+        const id = item.dataset.id;
+        const f = mockRefuges.find(function (x) { return x.id === id; });
+        if (!f || !map) return;
+        document.getElementById('toggle-refuges').checked = true;
+        setRefugesVisible(true);
+        map.flyTo([f.lat, f.lng], 17);
+        if (refugeMarkers[id]) refugeMarkers[id].openPopup();
+      });
+    });
+  }
+
+  function updateRecentReport() {
+    const recent = mockReports.slice().sort(function (a, b) { return a.minsAgo - b.minsAgo; })[0];
+    const card = document.getElementById('recent-report');
+    if (!recent) return;
+    card.querySelector('h4').textContent = recent.title;
+    card.querySelectorAll('p')[0].textContent = recent.street;
+    card.querySelectorAll('p')[1].textContent = 'Reported ' + recent.minsAgo + ' min ago';
+    card.querySelector('.meta').textContent =
+      recent.street + ' · ' + recent.minsAgo + ' min ago · ' + REPORT_TYPES[recent.type].label;
+  }
+
+  function setRefugesVisible(on) {
+    const list = document.getElementById('refuge-list');
+    if (on) {
+      if (!map.hasLayer(refugeLayer)) map.addLayer(refugeLayer);
+      list.classList.add('visible');
+    } else {
+      if (map.hasLayer(refugeLayer)) map.removeLayer(refugeLayer);
+      list.classList.remove('visible');
+    }
+  }
+
+  function setStressVisible(on) {
+    if (on) {
+      if (!map.hasLayer(stressLayer)) map.addLayer(stressLayer);
+    } else {
+      if (map.hasLayer(stressLayer)) map.removeLayer(stressLayer);
+    }
+  }
+
+  /* ── Page nav ── */
   const subtitles = {
     map: 'Community Sensory Map',
     report1: 'Report a Sensory Issue · Step 1 of 2',
@@ -359,43 +702,46 @@
   };
 
   function switchPage(pageId) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(function (p) { p.classList.remove('active'); });
+    document.querySelectorAll('.nav-links a').forEach(function (a) { a.classList.remove('active'); });
     document.getElementById(pageId).classList.add('active');
-    document.querySelector('[data-page="' + pageId + '"]').classList.add('active');
+    const link = document.querySelector('[data-page="' + pageId + '"]');
+    if (link) link.classList.add('active');
     document.getElementById('nav-subtitle').textContent = subtitles[pageId];
+    if (pageId === 'map') initMap();
   }
 
-  document.querySelectorAll('.nav-links a').forEach(link => {
-    link.addEventListener('click', e => {
+  document.querySelectorAll('.nav-links a').forEach(function (link) {
+    link.addEventListener('click', function (e) {
       e.preventDefault();
       switchPage(link.dataset.page);
     });
   });
 
   function selectRadio(el) {
-    el.closest('.radio-group').querySelectorAll('.radio-item').forEach(item => item.classList.remove('selected'));
+    el.closest('.radio-group').querySelectorAll('.radio-item').forEach(function (item) {
+      item.classList.remove('selected');
+    });
     el.classList.add('selected');
   }
 
-  function submitReport() {
+  /* ── Controls ── */
+  document.getElementById('toggle-refuges').addEventListener('change', function (e) {
+    setRefugesVisible(e.target.checked);
+  });
 
-    const note = document.querySelector("#report2 textarea").value;
+  document.getElementById('toggle-stress').addEventListener('change', function (e) {
+    setStressVisible(e.target.checked);
+  });
 
-    const result = SecurityValidator.validateNote(note);
+  document.querySelectorAll('[data-filter]').forEach(function (input) {
+    input.addEventListener('change', function () {
+      if (mapReady) renderReports();
+    });
+  });
 
-    if (!result.valid) {
-
-        alert(result.message);
-
-        return;
-
-    }
-
-    switchPage("published");
-
-}
-
+  // Boot map on first load
+  initMap();
 </script>
 
 </body>

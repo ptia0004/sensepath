@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SensePath</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: #f7f8fa; color: #111827; }
+
+    /* ── Navigation ── */
+    .nav {
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 20px 60px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .nav-logo { font-size: 27px; font-weight: 700; color: #111827; }
+    .nav-subtitle { font-size: 17px; color: #6b7280; }
+    .nav-links { margin-left: auto; display: flex; gap: 20px; }
+    .nav-links a {
+      font-size: 14px; color: #6b7280; text-decoration: none;
+      padding: 6px 14px; border-radius: 6px; transition: background 0.2s;
+    }
+    .nav-links a:hover { background: #f3f4f6; }
+    .nav-links a.active { color: #111827; font-weight: 600; background: #f3f4f6; }
+
+    /* ── Page Layout ── */
+    .page { display: none; min-height: calc(100vh - 69px); padding: 40px 60px; }
+    .page.active { display: block; }
+    .page-desc { font-size: 16px; color: #6b7280; margin-bottom: 40px; }
+    .content-grid {
+      display: grid; grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 24px; align-items: stretch;
+    }
+
+    /* ── Cards ── */
+    .card { background: #fff; border-radius: 16px; padding: 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    .card-sm { background: #fff; border-radius: 16px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 20px; }
+    .sidebar-stack { display: contents; }
+    .content-grid .card-sm { margin-bottom: 0; }
+    .content-grid .map-large { grid-column: 1 / 9; grid-row: 1 / span 4; }
+    .content-grid .alert-card { grid-column: 9 / 13; grid-row: 1; }
+    .content-grid .refuge-card { grid-column: 9 / 13; grid-row: 2; }
+    .content-grid .recent-card { grid-column: 9 / 13; grid-row: 3; }
+    .content-grid .report-action { grid-column: 9 / 13; grid-row: 4; align-self: end; }
+    .content-grid .preferences-card { grid-column: 1 / 7; grid-row: 5; }
+    .content-grid .route-card { grid-column: 7 / 13; grid-row: 5; }
+    .content-grid .ai-card { grid-column: 1 / 7; grid-row: 6; }
+    .content-grid .filter-card { grid-column: 7 / 13; grid-row: 6; }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      background: #111827; color: #fff; border: none;
+      padding: 16px 40px; border-radius: 12px;
+      font-size: 17px; font-weight: 700; cursor: pointer;
+      font-family: inherit; transition: background 0.2s;
+    }
+    .btn-primary:hover { background: #1f2937; }
+    .btn-full { width: 100%; }
+
+    /* ── Page 1: Community Sensory Map ── */
+    .map-large {
+      background: #e9ecf0; border-radius: 16px;
+      height: 850px; position: relative; overflow: hidden;
+      z-index: 0;
+    }
+    #community-map {
+      width: 100%; height: 100%;
+      border-radius: 16px;
+      font-family: inherit;
+    }
+    .map-legend {
+      position: absolute; left: 12px; bottom: 12px; z-index: 1000;
+      background: rgba(255,255,255,0.95); border-radius: 10px;
+      padding: 10px 14px; font-size: 12px; color: #4b5563;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .map-legend-row { display: flex; align-items: center; gap: 8px; }
+    .legend-dot {
+      width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+      border: 2px solid #111827; background: #fff;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700; color: #111827; line-height: 1;
+    }
+    .legend-dot.refuge { border-color: #059669; background: #d1fae5; color: #047857; }
+    .legend-dot.stress-high { border: none; background: rgba(185, 28, 28, 0.45); border-radius: 3px; width: 12px; height: 12px; }
+    .legend-dot.stress-med { border: none; background: rgba(180, 83, 9, 0.4); border-radius: 3px; width: 12px; height: 12px; }
+
+    .filter-card h3,
+    .alert-card h3,
+    .refuge-card h3,
+    .recent-card h3 { font-size: 20px; font-weight: 700; margin-bottom: 16px; }
+
+    .checkbox-item {
+      font-size: 16px; color: #4b5563; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px; cursor: pointer;
+    }
+    .checkbox-item:last-child { margin-bottom: 0; }
+    .checkbox-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: #111827; }
+    .filter-hint { font-size: 13px; color: #9ca3af; margin-top: 4px; margin-left: 26px; }
+
+    .alert-item {
+      padding: 14px 0;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .alert-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .alert-item:first-child { padding-top: 0; }
+    .alert-badge {
+      display: inline-block;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
+      text-transform: uppercase; padding: 3px 8px; border-radius: 4px;
+      margin-bottom: 6px;
+    }
+    .alert-badge.realtime { background: #fee2e2; color: #991b1b; }
+    .alert-badge.predictive { background: #fef3c7; color: #92400e; }
+    .alert-item h4 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .alert-item p { font-size: 14px; color: #6b7280; line-height: 1.45; }
+    .alert-item .meta { font-size: 13px; color: #9ca3af; margin-top: 6px; }
+
+    .refuge-list { margin-top: 14px; display: none; }
+    .refuge-list.visible { display: block; }
+    .refuge-item {
+      padding: 12px 0; border-bottom: 1px solid #f3f4f6; cursor: pointer;
+    }
+    .refuge-item:last-child { border-bottom: none; }
+    .refuge-item:hover h4 { color: #059669; }
+    .refuge-item h4 { font-size: 15px; font-weight: 700; margin-bottom: 2px; transition: color 0.15s; }
+    .refuge-item p { font-size: 13px; color: #6b7280; }
+
+    .recent-card h4 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .recent-card p { font-size: 15px; color: #6b7280; margin-bottom: 6px; }
+    .recent-card .meta { font-size: 14px; color: #9ca3af; margin-top: 8px; }
+
+    /* Leaflet custom markers */
+    .sp-marker {
+      width: 32px; height: 32px;
+      background: #fff; border: 2px solid #111827; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 14px; color: #111827;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    }
+    .sp-marker.refuge {
+      border-color: #059669; background: #ecfdf5; color: #047857; font-size: 12px;
+    }
+
+    /* ── Page 2: Report Step 1 ── */
+    .step-card { max-width: 700px; margin: 0 auto; }
+    .step-card h2 { font-size: 25px; font-weight: 700; margin-bottom: 8px; }
+    .step-card .step-desc { font-size: 16px; color: #6b7280; margin-bottom: 24px; }
+    .radio-group { display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
+    .radio-item {
+      display: flex; align-items: center; gap: 14px;
+      background: #f9fafb; border: 2px solid transparent; border-radius: 12px;
+      padding: 18px 20px; cursor: pointer; transition: border-color 0.2s;
+    }
+    .radio-item:hover { border-color: #d1d5db; }
+    .radio-item.selected { border-color: #111827; background: #f3f4f6; }
+    .radio-circle {
+      width: 24px; height: 24px;
+      border: 2px solid #d1d5db; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .radio-circle-inner {
+      width: 14px; height: 14px;
+      background: #111827; border-radius: 50%; display: none;
+    }
+    .radio-item.selected .radio-circle { border-color: #111827; }
+    .radio-item.selected .radio-circle-inner { display: block; }
+    .radio-item span { font-size: 17px; }
+    .step-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; }
+    .step-hint { font-size: 14px; color: #6b7280; }
+
+    /* ── Page 3: Report Step 2 ── */
+    .confirm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
+    .map-confirm {
+      background: #e9ecf0; border-radius: 16px; height: 480px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+    }
+    .location-dot {
+      width: 20px; height: 20px;
+      background: #111827; border: 4px solid #fff; border-radius: 50%;
+      box-shadow: 0 0 0 2px #111827; margin-bottom: 12px;
+    }
+    .location-label { font-size: 17px; font-weight: 700; color: #4b5563; }
+    .confirm-card h3 { font-size: 23px; font-weight: 700; margin-bottom: 24px; }
+    .field-group { margin-bottom: 20px; }
+    .field-label { font-size: 15px; color: #6b7280; margin-bottom: 4px; }
+    .field-value { font-size: 18px; font-weight: 700; }
+    .field-value.regular { font-weight: 400; font-size: 17px; }
+    textarea {
+      width: 100%; min-height: 100px;
+      border: 1px solid #e5e7eb; border-radius: 12px;
+      padding: 14px; font-family: inherit; font-size: 14px;
+      resize: vertical; color: #9ca3af;
+    }
+    textarea:focus { outline: none; border-color: #111827; color: #111827; }
+    .confirm-card input {
+      width: 100%; border: 1px solid #d1d5db; border-radius: 8px;
+      padding: 10px; margin-top: 6px;
+    }
+    button:focus-visible, input:focus-visible, select:focus-visible,
+    textarea:focus-visible, .radio-item:focus-visible {
+      outline: 3px solid #2563eb; outline-offset: 2px;
+    }
+    .submit-footer { margin-top: 16px; }
+    .submit-footer p { font-size: 14px; color: #6b7280; margin-top: 8px; }
+    #report-submit-status { margin: 12px 0 0; font-size: 14px; min-height: 20px; }
+    #report-submit-status.error { color: #b91c1c; font-weight: 600; }
+
+    /* ── Page 4: Report Published ── */
+    .published-grid { display: grid; grid-template-columns: 1fr 420px; gap: 40px; align-items: start; }
+    .map-published {
+      background: #e9ecf0; border-radius: 16px; height: 520px;
+      position: relative; display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .report-pin {
+      display: flex; align-items: center; gap: 12px;
+      background: #fff; padding: 12px 20px; border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .report-pin .pin-icon {
+      width: 32px; height: 32px;
+      background: #fff; border: 2px solid #111827; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 16px;
+    }
+    .report-pin-info h4 { font-size: 16px; font-weight: 700; }
+    .report-pin-info p { font-size: 14px; color: #6b7280; }
+    .success-card h3 { font-size: 25px; font-weight: 700; margin-bottom: 12px; }
+    .success-card p { font-size: 16px; color: #6b7280; line-height: 1.6; }
+    .success-card .expire-note { font-size: 14px; color: #9ca3af; margin-top: 16px; }
+    .controls-card h3 { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
+    .controls-card p { font-size: 16px; color: #4b5563; margin-bottom: 8px; }
+    .model-card h3 { font-size: 20px; margin-bottom: 8px; }
+    .model-card .model-note { color: #6b7280; font-size: 13px; line-height: 1.45; margin-bottom: 12px; }
+    .model-field { margin-bottom: 10px; }
+    .model-field label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .model-field select, .model-field input {
+      width: 100%; border: 1px solid #d1d5db; border-radius: 8px;
+      padding: 9px 10px; background: #fff; color: #111827;
+    }
+    .model-result {
+      margin-top: 12px; border-radius: 8px; padding: 10px;
+      background: #f3f4f6; font-size: 14px; line-height: 1.5;
+    }
+    .model-result[data-level="low"] { background: #dcfce7; color: #166534; }
+    .model-result[data-level="medium"] { background: #fef3c7; color: #92400e; }
+    .model-result[data-level="high"] { background: #fee2e2; color: #991b1b; }
+    .model-status { font-size: 12px; color: #6b7280; margin-top: 8px; }
+    .route-result { border-top: 1px solid #e5e7eb; padding: 10px 0; }
+    .route-result:first-child { border-top: 0; }
+    .route-result h4 { font-size: 15px; margin-bottom: 3px; }
+    .route-result p { font-size: 12px; color: #6b7280; line-height: 1.4; }
+    .route-result.best h4 { color: #166534; }
+
+    /* ── Map decorative lines (SVG) ── */
+    .map-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .map-svg line { stroke: #d1d5db; stroke-width: 1.5; }
+    .map-svg .road { stroke: #fff; stroke-width: 4; }
+
+    @media (max-width: 960px) {
+      .nav { padding: 16px 24px; flex-wrap: wrap; }
+      .nav-links { margin-left: 0; width: 100%; }
+      .page { padding: 24px; }
+      .content-grid, .published-grid, .confirm-grid {
+        grid-template-columns: 1fr;
+      }
+      .content-grid > *, .content-grid .sidebar-stack > * {
+        grid-column: 1 !important; grid-row: auto !important;
+      }
+      .map-large { height: 420px; }
+    }
+
+    @media (min-width: 961px) and (max-width: 1280px) {
+      .content-grid .map-large { grid-column: 1 / 9; }
+      .content-grid .alert-card,
+      .content-grid .refuge-card,
+      .content-grid .recent-card,
+      .content-grid .report-action { grid-column: 9 / 13; }
+      .content-grid .preferences-card { grid-column: 1 / 7; grid-row: 5; }
+      .content-grid .route-card { grid-column: 7 / 13; grid-row: 5; }
+      .content-grid .ai-card { grid-column: 1 / 7; grid-row: 6; }
+      .content-grid .filter-card { grid-column: 7 / 13; grid-row: 6; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="nav">
+  <span class="nav-logo">SensePath</span>
+  <span class="nav-subtitle" id="nav-subtitle">Community Sensory Map</span>
+  <div class="nav-links">
+    <a href="#" class="active" data-page="map">Community Map</a>
+    <a href="#" data-page="report1">Report Step 1</a>
+    <a href="#" data-page="report2">Report Step 2</a>
+    <a href="#" data-page="published">Published</a>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- Page 1: Community Sensory Map               -->
+<!-- ════════════════════════════════════════════ -->
+<div class="page active" id="map">
+  <p class="page-desc">Prototype sensory map with simulated stress zones, community-report examples, real open-data refuges, and a deployed facility-condition model.</p>
+  <div class="content-grid">
+    <div class="map-large">
+      <div id="community-map"></div>
+      <div class="map-legend">
+        <div class="map-legend-row"><span class="legend-dot">C</span> Crowds</div>
+        <div class="map-legend-row"><span class="legend-dot">L</span> Loud events</div>
+        <div class="map-legend-row"><span class="legend-dot">R</span> Roadworks</div>
+        <div class="map-legend-row"><span class="legend-dot">H</span> Heavy crowds</div>
+        <div class="map-legend-row"><span class="legend-dot refuge">P</span> Park refuge</div>
+        <div class="map-legend-row"><span class="legend-dot refuge">L</span> Library refuge</div>
+        <div class="map-legend-row"><span class="legend-dot refuge">Q</span> Quiet refuge</div>
+        <div class="map-legend-row"><span class="legend-dot stress-high"></span> High pedestrian stress (simulated demo)</div>
+        <div class="map-legend-row"><span class="legend-dot stress-med"></span> Medium pedestrian stress (simulated demo)</div>
+      </div>
+    </div>
+    <div class="sidebar-stack">
+      <div class="card-sm alert-card">
+        <h3>Alerts</h3>
+        <div id="alerts-list"></div>
+      </div>
+
+      <div class="card-sm refuge-card">
+        <h3>Sensory refuges</h3>
+        <label class="checkbox-item">
+          <input type="checkbox" id="toggle-refuges"> Show nearby parks, libraries &amp; quiet spaces
+        </label>
+        <div class="refuge-list" id="refuge-list"></div>
+      </div>
+
+      <div class="card-sm model-card preferences-card">
+        <h3>Sensory preferences</h3>
+        <p class="model-note">Saved on this device and applied immediately to report visibility and route scoring.</p>
+        <div class="model-field">
+          <label for="crowd-tolerance">Crowd tolerance</label>
+          <select id="crowd-tolerance">
+            <option value="low">Low — show crowd alerts</option>
+            <option value="medium" selected>Medium — show heavy crowds</option>
+            <option value="high">High — hide crowd alerts</option>
+          </select>
+        </div>
+        <label class="checkbox-item"><input type="checkbox" id="avoid-loud" checked> Alert me about loud events</label>
+        <label class="checkbox-item"><input type="checkbox" id="avoid-roadworks" checked> Alert me about roadworks</label>
+        <button type="button" class="btn-primary btn-full" id="save-preferences-button">Save preferences</button>
+        <p id="preferences-status" class="model-status" role="status" aria-live="polite"></p>
+      </div>
+
+      <div class="card-sm model-card route-card">
+        <h3>Quiet route comparison</h3>
+        <p class="model-note">Compares three conceptual corridors using active community reports, nearby refuges, distance, and your preferences. Not turn-by-turn navigation.</p>
+        <div class="model-field">
+          <label for="route-start-latitude">Start latitude</label>
+          <input id="route-start-latitude" type="number" step="0.0001" value="-37.8136">
+        </div>
+        <div class="model-field">
+          <label for="route-start-longitude">Start longitude</label>
+          <input id="route-start-longitude" type="number" step="0.0001" value="144.9631">
+        </div>
+        <div class="model-field">
+          <label for="route-end-latitude">Destination latitude</label>
+          <input id="route-end-latitude" type="number" step="0.0001" value="-37.8183">
+        </div>
+        <div class="model-field">
+          <label for="route-end-longitude">Destination longitude</label>
+          <input id="route-end-longitude" type="number" step="0.0001" value="144.9671">
+        </div>
+        <button type="button" class="btn-primary btn-full" id="compare-routes-button">Compare route corridors</button>
+        <div id="route-results" role="status" aria-live="polite"></div>
+      </div>
+
+      <div class="card-sm model-card ai-card">
+        <h3>AI facility condition</h3>
+        <p class="model-note">Estimates street-furniture condition from asset type and location. It is not a live crowd or noise prediction.</p>
+        <div class="model-field">
+          <label for="model-asset-type">Asset type</label>
+          <select id="model-asset-type">
+            <option>Seat</option>
+            <option>Drinking Fountain</option>
+            <option>Picnic Setting</option>
+            <option>Barbeque</option>
+            <option>Information Pillar</option>
+          </select>
+        </div>
+        <div class="model-field">
+          <label for="model-latitude">Latitude</label>
+          <input id="model-latitude" type="number" step="0.0001" value="-37.8136">
+        </div>
+        <div class="model-field">
+          <label for="model-longitude">Longitude</label>
+          <input id="model-longitude" type="number" step="0.0001" value="144.9631">
+        </div>
+        <button type="button" class="btn-primary btn-full" id="model-predict-button">Predict condition</button>
+        <div id="model-result" class="model-result" role="status" aria-live="polite">Select an asset and run the deployed model.</div>
+        <p id="model-status" class="model-status">Checking model service...</p>
+      </div>
+
+      <div class="card-sm filter-card">
+        <h3>Filter reports</h3>
+        <label class="checkbox-item"><input type="checkbox" checked data-filter="crowds"> <strong>C</strong>&nbsp; Crowds</label>
+        <label class="checkbox-item"><input type="checkbox" checked data-filter="loud"> <strong>L</strong>&nbsp; Loud events</label>
+        <label class="checkbox-item"><input type="checkbox" checked data-filter="roadworks"> <strong>R</strong>&nbsp; Roadworks</label>
+        <label class="checkbox-item"><input type="checkbox" checked data-filter="heavy"> <strong>H</strong>&nbsp; Heavy crowds</label>
+        <label class="checkbox-item"><input type="checkbox" checked data-filter="other"> <strong>O</strong>&nbsp; Other sensory issues</label>
+        <label class="checkbox-item" style="margin-top: 8px;">
+          <input type="checkbox" checked id="toggle-stress"> Show simulated pedestrian stress zones
+        </label>
+        <p class="filter-hint">Prototype demonstration data only</p>
+      </div>
+
+      <div class="card-sm recent-card" id="recent-report">
+        <h3>Recent report</h3>
+        <h4>—</h4>
+        <p>—</p>
+        <p>—</p>
+        <p class="meta">Location · time · incident type</p>
+      </div>
+
+      <button class="btn-primary btn-full report-action" onclick="switchPage('report1')">+ Report sensory issue</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- Page 2: Report Step 1                       -->
+<!-- ════════════════════════════════════════════ -->
+<div class="page" id="report1">
+  <p class="page-desc">Designed to submit a temporary sensory hazard in fewer than three steps.</p>
+  <div class="card step-card">
+    <h2>What did you encounter?</h2>
+    <p class="step-desc">Choose one category.</p>
+    <div class="radio-group" role="radiogroup" aria-label="Sensory issue category">
+      <div class="radio-item selected" role="radio" tabindex="0" aria-checked="true" data-category="crowds" onclick="selectRadio(this)">
+        <div class="radio-circle"><div class="radio-circle-inner"></div></div>
+        <span>Crowds</span>
+      </div>
+      <div class="radio-item" role="radio" tabindex="0" aria-checked="false" data-category="loud" onclick="selectRadio(this)">
+        <div class="radio-circle"><div class="radio-circle-inner"></div></div>
+        <span>Protest / loud event</span>
+      </div>
+      <div class="radio-item" role="radio" tabindex="0" aria-checked="false" data-category="roadworks" onclick="selectRadio(this)">
+        <div class="radio-circle"><div class="radio-circle-inner"></div></div>
+        <span>Roadworks</span>
+      </div>
+      <div class="radio-item" role="radio" tabindex="0" aria-checked="false" data-category="heavy" onclick="selectRadio(this)">
+        <div class="radio-circle"><div class="radio-circle-inner"></div></div>
+        <span>Heavy crowds</span>
+      </div>
+      <div class="radio-item" role="radio" tabindex="0" aria-checked="false" data-category="other" onclick="selectRadio(this)">
+        <div class="radio-circle"><div class="radio-circle-inner"></div></div>
+        <span>Other sensory issue</span>
+      </div>
+    </div>
+    <div class="step-footer">
+      <span class="step-hint">Step 1: Category → Step 2: Confirm location & submit</span>
+      <button class="btn-primary" onclick="prepareReportConfirmation()">Next</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- Page 3: Report Step 2                       -->
+<!-- ════════════════════════════════════════════ -->
+<div class="page" id="report2">
+  <p class="page-desc">Confirm location, add an optional note, then publish the report.</p>
+  <div class="confirm-grid">
+    <div class="map-confirm">
+      <svg class="map-svg" viewBox="0 0 600 480" preserveAspectRatio="none">
+        <line class="road" x1="80" y1="0" x2="200" y2="480"/>
+        <line class="road" x1="300" y1="0" x2="150" y2="480"/>
+        <line class="road" x1="450" y1="0" x2="500" y2="480"/>
+        <line class="road" x1="0" y1="120" x2="600" y2="140"/>
+        <line class="road" x1="0" y1="350" x2="600" y2="330"/>
+      </svg>
+      <div class="location-dot"></div>
+      <span class="location-label">Current report location</span>
+    </div>
+    <div class="card-sm confirm-card">
+      <h3>Confirm report</h3>
+      <div class="field-group">
+        <p class="field-label">Category</p>
+        <p class="field-value" id="confirm-report-category">Crowds</p>
+      </div>
+      <div class="field-group">
+        <p class="field-label">Location</p>
+        <input id="report-location-label" maxlength="200" value="Melbourne CBD" aria-label="Location label">
+      </div>
+      <div class="field-group">
+        <p class="field-label">Approximate coordinates</p>
+        <input id="report-latitude" type="number" step="0.0001" value="-37.8136" aria-label="Report latitude">
+        <input id="report-longitude" type="number" step="0.0001" value="144.9631" aria-label="Report longitude">
+      </div>
+      <div class="field-group">
+        <p class="field-label">Optional note</p>
+        <textarea id="report-comment" maxlength="300" placeholder="Add useful context..."></textarea>
+      </div>
+      <button class="btn-primary btn-full" id="submit-report-button" onclick="submitCommunityReport()">Submit report</button>
+      <p id="report-submit-status" role="status" aria-live="polite"></p>
+      <div class="submit-footer">
+        <p>Reports include timestamp and location metadata.</p>
+        <p>Temporary reports expire automatically.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- Page 4: Report Published                    -->
+<!-- ════════════════════════════════════════════ -->
+<div class="page" id="published">
+  <p class="page-desc">New community reports appear on the sensory map and can help other commuters.</p>
+  <div class="published-grid">
+    <div class="map-published">
+      <svg class="map-svg" viewBox="0 0 800 520" preserveAspectRatio="none">
+        <line class="road" x1="100" y1="0" x2="250" y2="520"/>
+        <line class="road" x1="350" y1="0" x2="200" y2="520"/>
+        <line class="road" x1="500" y1="0" x2="600" y2="520"/>
+        <line class="road" x1="0" y1="150" x2="800" y2="180"/>
+        <line class="road" x1="0" y1="400" x2="800" y2="380"/>
+      </svg>
+      <div class="report-pin">
+        <div class="pin-icon">!</div>
+        <div class="report-pin-info">
+          <h4 id="published-report-category">Report</h4>
+          <p id="published-report-location">Just now</p>
+        </div>
+      </div>
+    </div>
+    <div class="sidebar-stack">
+      <div class="card-sm success-card">
+        <h3>Report submitted</h3>
+        <p>Your report is now visible to nearby commuters.</p>
+        <p class="expire-note">It will expire after the configured period.</p>
+      </div>
+      <div class="card-sm controls-card">
+        <h3>Community map controls</h3>
+        <p>Filter by category</p>
+        <p>View report timestamp</p>
+        <p>Hide expired reports</p>
+        <p>Moderate duplicate / inappropriate reports</p>
+      </div>
+      <button class="btn-primary btn-full" onclick="switchPage('map')">Back to community map</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const CBD = { lat: -37.8136, lng: 144.9631 };
+  const API_HELP = 'Cannot connect to the SensePath API. Run "python run.py" and open http://127.0.0.1:5000 instead of opening web/index.html directly.';
+
+  function apiFetch(path, options) {
+    if (window.location.protocol === 'file:') {
+      return Promise.reject(new Error(API_HELP));
+    }
+    return fetch(path, options);
+  }
+
+  function apiErrorMessage(error) {
+    if (error && (error.message === 'Failed to fetch' || error instanceof TypeError)) {
+      return API_HELP;
+    }
+    return error && error.message ? error.message : 'The request could not be completed.';
+  }
+
+  /* ── Mock data (simulated; swap for API later) ── */
+  function jitter(base, spread) {
+    return base + (Math.random() - 0.5) * spread;
+  }
+
+  const REPORT_TYPES = {
+    crowds: { label: 'Crowds', filter: 'crowds', letter: 'C' },
+    loud: { label: 'Loud event', filter: 'loud', letter: 'L' },
+    roadworks: { label: 'Roadworks', filter: 'roadworks', letter: 'R' },
+    heavy: { label: 'Heavy crowds', filter: 'heavy', letter: 'H' },
+    other: { label: 'Other sensory issue', filter: 'other', letter: 'O' }
+  };
+
+  let communityReports = [];
+  let selectedReportCategory = 'crowds';
+
+  let mockRefuges = [
+    { id: 'f1', name: 'State Library of Victoria', type: 'library', lat: -37.8098, lng: 144.9652, distanceM: 420 },
+    { id: 'f2', name: 'Flagstaff Gardens', type: 'park', lat: -37.8106, lng: 144.9544, distanceM: 780 },
+    { id: 'f3', name: 'Birrarung Marr', type: 'park', lat: -37.8190, lng: 144.9730, distanceM: 950 },
+    { id: 'f4', name: 'City Library', type: 'library', lat: -37.8148, lng: 144.9665, distanceM: 310 },
+    { id: 'f5', name: 'Queen Victoria Gardens', type: 'park', lat: -37.8225, lng: 144.9715, distanceM: 1200 },
+    { id: 'f6', name: 'Quiet foyer · Town Hall', type: 'quiet', lat: -37.8152, lng: 144.9668, distanceM: 260 }
+  ];
+
+  const mockStressZones = [
+    { id: 's1', name: 'Swanston St corridor', level: 'high', lat: -37.8145, lng: 144.9638, radius: 180 },
+    { id: 's2', name: 'Bourke Street Mall', level: 'high', lat: -37.8136, lng: 144.9648, radius: 140 },
+    { id: 's3', name: 'Flinders St Station', level: 'medium', lat: -37.8183, lng: 144.9671, radius: 200 },
+    { id: 's4', name: 'Spencer St precinct', level: 'medium', lat: -37.8148, lng: 144.9535, radius: 160 }
+  ];
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>'"]/g, function (character) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character];
+    });
+  }
+
+  function reportFromApi(item) {
+    const created = new Date(item.created_at);
+    const minsAgo = Math.max(0, Math.floor((Date.now() - created.getTime()) / 60000));
+    return {
+      id: item.id,
+      type: item.category,
+      title: item.category_name,
+      street: item.location_label || 'Approximate map location',
+      comment: item.comment || '',
+      minsAgo: minsAgo,
+      lat: item.latitude,
+      lng: item.longitude,
+      expiresAt: item.expires_at
+    };
+  }
+
+  async function loadCommunityReports() {
+    try {
+      const response = await apiFetch('/api/reports?limit=200');
+      if (!response.ok) throw new Error('Report API returned ' + response.status);
+      const body = await response.json();
+      communityReports = body.reports.map(reportFromApi);
+      if (mapReady) {
+        renderReports();
+        updateRecentReport();
+        renderRouteSuggestions();
+      }
+    } catch (error) {
+      console.warn('Community reports unavailable:', error);
+    }
+  }
+
+  function prepareReportConfirmation() {
+    document.getElementById('confirm-report-category').textContent =
+      REPORT_TYPES[selectedReportCategory].label;
+    switchPage('report2');
+  }
+
+  async function submitCommunityReport() {
+    const button = document.getElementById('submit-report-button');
+    const status = document.getElementById('report-submit-status');
+    button.disabled = true;
+    status.classList.remove('error');
+    status.textContent = 'Submitting report...';
+    const submissionKey = window.crypto && window.crypto.randomUUID
+      ? window.crypto.randomUUID()
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (character) {
+          const random = Math.random() * 16 | 0;
+          const value = character === 'x' ? random : (random & 3 | 8);
+          return value.toString(16);
+        });
+    try {
+      const response = await apiFetch('/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category: selectedReportCategory,
+          latitude: Number(document.getElementById('report-latitude').value),
+          longitude: Number(document.getElementById('report-longitude').value),
+          location_label: document.getElementById('report-location-label').value,
+          comment: document.getElementById('report-comment').value,
+          submission_key: submissionKey
+        })
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || 'Report submission failed');
+      const report = reportFromApi(body.report);
+      document.getElementById('published-report-category').textContent = report.title;
+      document.getElementById('published-report-location').textContent =
+        'Just now · ' + report.street;
+      status.textContent = '';
+      document.getElementById('report-comment').value = '';
+      await loadCommunityReports();
+      switchPage('published');
+    } catch (error) {
+      status.classList.add('error');
+      status.textContent = apiErrorMessage(error);
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  const PREFERENCES_KEY = 'sensepath.preferences.v1';
+
+  function currentPreferences() {
+    return {
+      crowdTolerance: document.getElementById('crowd-tolerance').value,
+      avoidLoud: document.getElementById('avoid-loud').checked,
+      avoidRoadworks: document.getElementById('avoid-roadworks').checked
+    };
+  }
+
+  function loadPreferences() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(PREFERENCES_KEY) || '{}');
+      if (['low', 'medium', 'high'].includes(saved.crowdTolerance)) {
+        document.getElementById('crowd-tolerance').value = saved.crowdTolerance;
+      }
+      if (typeof saved.avoidLoud === 'boolean') {
+        document.getElementById('avoid-loud').checked = saved.avoidLoud;
+      }
+      if (typeof saved.avoidRoadworks === 'boolean') {
+        document.getElementById('avoid-roadworks').checked = saved.avoidRoadworks;
+      }
+    } catch (error) {
+      console.warn('Saved preferences could not be loaded:', error);
+    }
+  }
+
+  function savePreferences() {
+    localStorage.setItem(PREFERENCES_KEY, JSON.stringify(currentPreferences()));
+    document.getElementById('preferences-status').textContent =
+      'Preferences saved and applied.';
+    if (mapReady) renderReports();
+    renderRouteSuggestions();
+  }
+
+  function reportAllowedByPreferences(type) {
+    const preferences = currentPreferences();
+    if (type === 'crowds') return preferences.crowdTolerance === 'low';
+    if (type === 'heavy') return preferences.crowdTolerance !== 'high';
+    if (type === 'loud') return preferences.avoidLoud;
+    if (type === 'roadworks') return preferences.avoidRoadworks;
+    return true;
+  }
+
+  function distanceMetres(a, b) {
+    const radius = 6371000;
+    const p1 = a.lat * Math.PI / 180;
+    const p2 = b.lat * Math.PI / 180;
+    const dp = (b.lat - a.lat) * Math.PI / 180;
+    const dl = (b.lng - a.lng) * Math.PI / 180;
+    const value = Math.sin(dp / 2) ** 2 +
+      Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2;
+    return radius * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
+  }
+
+  function distanceToSegmentMetres(point, start, end) {
+    const latScale = 111320;
+    const lonScale = 111320 * Math.cos(point.lat * Math.PI / 180);
+    const ax = (start.lng - point.lng) * lonScale;
+    const ay = (start.lat - point.lat) * latScale;
+    const bx = (end.lng - point.lng) * lonScale;
+    const by = (end.lat - point.lat) * latScale;
+    const dx = bx - ax;
+    const dy = by - ay;
+    const denominator = dx * dx + dy * dy;
+    const fraction = denominator ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / denominator)) : 0;
+    return Math.hypot(ax + fraction * dx, ay + fraction * dy);
+  }
+
+  function distanceToRouteMetres(point, points) {
+    let closest = Infinity;
+    for (let index = 0; index < points.length - 1; index += 1) {
+      closest = Math.min(closest, distanceToSegmentMetres(point, points[index], points[index + 1]));
+    }
+    return closest;
+  }
+
+  function reportPenalty(report, preferences) {
+    if (report.type === 'crowds') return preferences.crowdTolerance === 'low' ? 22 : 5;
+    if (report.type === 'heavy') return preferences.crowdTolerance === 'high' ? 8 : 32;
+    if (report.type === 'loud') return preferences.avoidLoud ? 26 : 5;
+    if (report.type === 'roadworks') return preferences.avoidRoadworks ? 30 : 6;
+    return 15;
+  }
+
+  function scoreRoute(name, points, directDistance) {
+    const preferences = currentPreferences();
+    let distance = 0;
+    for (let index = 0; index < points.length - 1; index += 1) {
+      distance += distanceMetres(points[index], points[index + 1]);
+    }
+    const nearbyReports = communityReports.filter(function (report) {
+      return distanceToRouteMetres({ lat: report.lat, lng: report.lng }, points) <= 250;
+    });
+    const nearbyRefuges = mockRefuges.filter(function (refuge) {
+      return distanceToRouteMetres({ lat: refuge.lat, lng: refuge.lng }, points) <= 180;
+    });
+    const hazardPenalty = nearbyReports.reduce(function (sum, report) {
+      return sum + reportPenalty(report, preferences);
+    }, 0);
+    const distancePenalty = Math.max(0, (distance / directDistance - 1) * 35);
+    const refugeBenefit = Math.min(20, nearbyRefuges.length * 4);
+    const score = Math.max(0, Math.min(100, 20 + hazardPenalty + distancePenalty - refugeBenefit));
+    return {
+      name: name,
+      points: points,
+      distance: Math.round(distance),
+      score: Math.round(score),
+      reports: nearbyReports.length,
+      refuges: nearbyRefuges.length
+    };
+  }
+
+  function renderRouteSuggestions() {
+    const results = document.getElementById('route-results');
+    if (!results) return;
+    const start = {
+      lat: Number(document.getElementById('route-start-latitude').value),
+      lng: Number(document.getElementById('route-start-longitude').value)
+    };
+    const end = {
+      lat: Number(document.getElementById('route-end-latitude').value),
+      lng: Number(document.getElementById('route-end-longitude').value)
+    };
+    if (![start.lat, start.lng, end.lat, end.lng].every(Number.isFinite)) {
+      results.textContent = 'Enter valid start and destination coordinates.';
+      return;
+    }
+    const midpoint = { lat: (start.lat + end.lat) / 2, lng: (start.lng + end.lng) / 2 };
+    const directDistance = Math.max(1, distanceMetres(start, end));
+    const routes = [
+      scoreRoute('Direct corridor', [start, midpoint, end], directDistance),
+      scoreRoute('West alternative', [start, { lat: midpoint.lat + 0.0015, lng: midpoint.lng - 0.002 }, end], directDistance),
+      scoreRoute('East alternative', [start, { lat: midpoint.lat - 0.0015, lng: midpoint.lng + 0.002 }, end], directDistance)
+    ].sort(function (a, b) { return a.score - b.score || a.distance - b.distance; });
+
+    results.innerHTML = routes.map(function (route, index) {
+      return '<div class="route-result ' + (index === 0 ? 'best' : '') + '">' +
+        '<h4>' + (index === 0 ? 'Recommended · ' : '') + escapeHtml(route.name) + '</h4>' +
+        '<p>Assistive score ' + route.score + '/100 (lower is calmer) · ' +
+        route.distance + ' m · ' + route.reports + ' active reports · ' +
+        route.refuges + ' nearby refuges</p></div>';
+    }).join('');
+
+    if (mapReady && routeLayer) {
+      routeLayer.clearLayers();
+      const colours = ['#15803d', '#2563eb', '#6b7280'];
+      routes.forEach(function (route, index) {
+        L.polyline(route.points.map(function (point) { return [point.lat, point.lng]; }), {
+          color: colours[index], weight: index === 0 ? 6 : 4, opacity: 0.8,
+          dashArray: index === 0 ? null : '8 6'
+        }).bindPopup(escapeHtml(route.name) + ' · score ' + route.score + '/100').addTo(routeLayer);
+      });
+      map.fitBounds(routeLayer.getBounds(), { padding: [30, 30] });
+    }
+  }
+
+  function refugeTypeFromApi(item) {
+    const description = (item.subtype + ' ' + item.name).toLowerCase();
+    if (description.includes('library')) return 'library';
+    if (description.includes('park') || description.includes('garden') || description.includes('reserve')) return 'park';
+    return 'quiet';
+  }
+
+  async function loadNearbyRefuges() {
+    try {
+      const params = new URLSearchParams({
+        latitude: CBD.lat,
+        longitude: CBD.lng,
+        radius_m: 2000,
+        limit: 20
+      });
+      const response = await apiFetch('/api/refuges?' + params.toString());
+      if (!response.ok) throw new Error('Refuge API returned ' + response.status);
+      const body = await response.json();
+      if (!body.refuges || !body.refuges.length) return;
+      mockRefuges = body.refuges.map(function (item) {
+        return {
+          id: item.id,
+          name: item.name,
+          type: refugeTypeFromApi(item),
+          lat: item.latitude,
+          lng: item.longitude,
+          distanceM: item.distance_m,
+          source: item.source_file
+        };
+      });
+      if (mapReady) {
+        renderRefuges();
+        renderRefugeList();
+        renderRouteSuggestions();
+      }
+    } catch (error) {
+      console.warn('Using fallback refuge data:', error);
+    }
+  }
+
+  async function checkModelService() {
+    const status = document.getElementById('model-status');
+    try {
+      const response = await apiFetch('/api/health');
+      if (!response.ok) throw new Error('Health check failed');
+      const body = await response.json();
+      status.textContent = 'Model ' + body.model_version + ' ready · three-source catalog ' +
+        (body.refuge_catalog_loaded ? 'ready' : 'unavailable');
+    } catch (error) {
+      status.textContent = 'Model service unavailable. Start the page with python run.py.';
+    }
+  }
+
+  async function runFacilityPrediction() {
+    const button = document.getElementById('model-predict-button');
+    const result = document.getElementById('model-result');
+    button.disabled = true;
+    result.removeAttribute('data-level');
+    result.textContent = 'Running model...';
+    try {
+      const response = await apiFetch('/api/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          asset_class: 'Outdoor Furniture',
+          asset_type: document.getElementById('model-asset-type').value,
+          latitude: Number(document.getElementById('model-latitude').value),
+          longitude: Number(document.getElementById('model-longitude').value)
+        })
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || 'Prediction failed');
+      result.dataset.level = body.assistive_condition_risk_level;
+      result.textContent = 'Condition: ' + body.condition_category + ' (' +
+        body.condition_score + '/5) · Assistive risk: ' +
+        body.assistive_condition_risk_level + ' (' +
+        body.assistive_condition_risk_score + '/100) · ' +
+        body.latency_ms + ' ms';
+    } catch (error) {
+      result.textContent = error.message;
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  function buildAlerts() {
+    const high = mockStressZones.filter(z => z.level === 'high');
+    const pick = high[Math.floor(Math.random() * high.length)] || mockStressZones[0];
+    const pred = mockStressZones[Math.floor(Math.random() * mockStressZones.length)];
+    const hour = new Date();
+    hour.setMinutes(0, 0, 0);
+    hour.setHours(hour.getHours() + 1);
+    const peakLabel = hour.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+    return [
+      {
+        kind: 'realtime',
+        title: pick.name + ' — high pedestrian stress (simulated)',
+        body: 'Demonstration alert only. A real version requires current pedestrian data.',
+        meta: 'Simulated · updated just now',
+        lat: pick.lat,
+        lng: pick.lng
+      },
+      {
+        kind: 'predictive',
+        title: pred.name + ' — medium pedestrian stress (simulated)',
+        body: 'Demonstration scenario for the next hour (around ' + peakLabel + ').',
+        meta: 'Simulated prototype · not a model prediction',
+        lat: pred.lat,
+        lng: pred.lng
+      }
+    ];
+  }
+
+  /* ── Map state ── */
+  let map = null;
+  let reportLayer = null;
+  let refugeLayer = null;
+  let stressLayer = null;
+  let routeLayer = null;
+  let reportMarkers = {};
+  let refugeMarkers = {};
+  let mapReady = false;
+
+  function markerIcon(html, className) {
+    return L.divIcon({
+      className: '',
+      html: '<div class="sp-marker ' + (className || '') + '">' + html + '</div>',
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+      popupAnchor: [0, -16]
+    });
+  }
+
+  function refugeLabel(type) {
+    if (type === 'library') return 'L';
+    if (type === 'park') return 'P';
+    return 'Q';
+  }
+
+  function typeLabel(type) {
+    if (type === 'library') return 'Library';
+    if (type === 'park') return 'Park';
+    return 'Quiet space';
+  }
+
+  function initMap() {
+    if (mapReady) {
+      setTimeout(function () { map.invalidateSize(); }, 50);
+      return;
+    }
+
+    map = L.map('community-map', {
+      zoomControl: true,
+      attributionControl: true
+    }).setView([CBD.lat, CBD.lng], 15);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    reportLayer = L.layerGroup().addTo(map);
+    stressLayer = L.layerGroup().addTo(map);
+    refugeLayer = L.layerGroup();
+    routeLayer = L.featureGroup().addTo(map);
+
+    renderStressZones();
+    renderReports();
+    renderRefuges();
+    renderAlerts();
+    renderRefugeList();
+    updateRecentReport();
+
+    mapReady = true;
+    setTimeout(function () { map.invalidateSize(); }, 100);
+  }
+
+  function renderStressZones() {
+    stressLayer.clearLayers();
+    mockStressZones.forEach(function (z) {
+      const isHigh = z.level === 'high';
+      L.circle([z.lat, z.lng], {
+        radius: z.radius,
+        color: isHigh ? '#991b1b' : '#b45309',
+        weight: 1,
+        fillColor: isHigh ? '#b91c1c' : '#d97706',
+        fillOpacity: isHigh ? 0.28 : 0.2
+      }).bindPopup(
+        '<strong>' + z.name + '</strong><br>' +
+        (isHigh ? 'High pedestrian stress (simulated)' : 'Medium pedestrian stress (simulated)')
+      ).addTo(stressLayer);
+    });
+  }
+
+  function activeFilters() {
+    const filters = {};
+    document.querySelectorAll('[data-filter]').forEach(function (input) {
+      filters[input.dataset.filter] = input.checked;
+    });
+    return filters;
+  }
+
+  function renderReports() {
+    reportLayer.clearLayers();
+    reportMarkers = {};
+    const filters = activeFilters();
+
+    communityReports.forEach(function (r) {
+      if (!filters[r.type] || !reportAllowedByPreferences(r.type)) return;
+      const m = L.marker([r.lat, r.lng], {
+        icon: markerIcon(REPORT_TYPES[r.type].letter)
+      }).bindPopup(
+        '<strong>' + escapeHtml(r.title) + '</strong><br>' +
+        escapeHtml(r.street) + '<br>' +
+        'Reported ' + r.minsAgo + ' min ago'
+      );
+      m.addTo(reportLayer);
+      reportMarkers[r.id] = m;
+    });
+  }
+
+  function renderRefuges() {
+    refugeLayer.clearLayers();
+    refugeMarkers = {};
+    mockRefuges.forEach(function (f) {
+      const m = L.marker([f.lat, f.lng], {
+        icon: markerIcon(refugeLabel(f.type), 'refuge')
+      }).bindPopup(
+        '<strong>' + escapeHtml(f.name) + '</strong><br>' +
+        typeLabel(f.type) + ' · ~' + f.distanceM + ' m'
+      );
+      m.addTo(refugeLayer);
+      refugeMarkers[f.id] = m;
+    });
+  }
+
+  function renderAlerts() {
+    const alerts = buildAlerts();
+    const el = document.getElementById('alerts-list');
+    el.innerHTML = alerts.map(function (a) {
+      return (
+        '<div class="alert-item" data-lat="' + a.lat + '" data-lng="' + a.lng + '">' +
+          '<span class="alert-badge ' + a.kind + '">' + (a.kind === 'realtime' ? 'Live' : 'Predicted') + '</span>' +
+          '<h4>' + a.title + '</h4>' +
+          '<p>' + a.body + '</p>' +
+          '<p class="meta">' + a.meta + '</p>' +
+        '</div>'
+      );
+    }).join('');
+
+    el.querySelectorAll('.alert-item').forEach(function (item) {
+      item.style.cursor = 'pointer';
+      item.addEventListener('click', function () {
+        if (!map) return;
+        map.flyTo([+item.dataset.lat, +item.dataset.lng], 16);
+      });
+    });
+  }
+
+  function renderRefugeList() {
+    const list = document.getElementById('refuge-list');
+    const sorted = mockRefuges.slice().sort(function (a, b) { return a.distanceM - b.distanceM; });
+    list.innerHTML = sorted.map(function (f) {
+      return (
+        '<div class="refuge-item" data-id="' + f.id + '">' +
+          '<h4>' + escapeHtml(f.name) + '</h4>' +
+          '<p>' + typeLabel(f.type) + ' · ~' + f.distanceM + ' m away</p>' +
+        '</div>'
+      );
+    }).join('');
+
+    list.querySelectorAll('.refuge-item').forEach(function (item) {
+      item.addEventListener('click', function () {
+        const id = item.dataset.id;
+        const f = mockRefuges.find(function (x) { return x.id === id; });
+        if (!f || !map) return;
+        document.getElementById('toggle-refuges').checked = true;
+        setRefugesVisible(true);
+        map.flyTo([f.lat, f.lng], 17);
+        if (refugeMarkers[id]) refugeMarkers[id].openPopup();
+      });
+    });
+  }
+
+  function updateRecentReport() {
+    const recent = communityReports.slice().sort(function (a, b) { return a.minsAgo - b.minsAgo; })[0];
+    const card = document.getElementById('recent-report');
+    if (!recent) {
+      card.querySelector('h4').textContent = 'No active reports';
+      card.querySelectorAll('p')[0].textContent = 'Community reports will appear here.';
+      card.querySelectorAll('p')[1].textContent = '';
+      card.querySelector('.meta').textContent = 'Expired reports are hidden automatically.';
+      return;
+    }
+    card.querySelector('h4').textContent = recent.title;
+    card.querySelectorAll('p')[0].textContent = recent.street;
+    card.querySelectorAll('p')[1].textContent = 'Reported ' + recent.minsAgo + ' min ago';
+    card.querySelector('.meta').textContent =
+      recent.street + ' · ' + recent.minsAgo + ' min ago · ' + REPORT_TYPES[recent.type].label;
+  }
+
+  function setRefugesVisible(on) {
+    const list = document.getElementById('refuge-list');
+    if (on) {
+      if (!map.hasLayer(refugeLayer)) map.addLayer(refugeLayer);
+      list.classList.add('visible');
+    } else {
+      if (map.hasLayer(refugeLayer)) map.removeLayer(refugeLayer);
+      list.classList.remove('visible');
+    }
+  }
+
+  function setStressVisible(on) {
+    if (on) {
+      if (!map.hasLayer(stressLayer)) map.addLayer(stressLayer);
+    } else {
+      if (map.hasLayer(stressLayer)) map.removeLayer(stressLayer);
+    }
+  }
+
+  /* ── Page nav ── */
+  const subtitles = {
+    map: 'Community Sensory Map',
+    report1: 'Report a Sensory Issue · Step 1 of 2',
+    report2: 'Report a Sensory Issue · Step 2 of 2',
+    published: 'Report Published'
+  };
+
+  function switchPage(pageId) {
+    document.querySelectorAll('.page').forEach(function (p) { p.classList.remove('active'); });
+    document.querySelectorAll('.nav-links a').forEach(function (a) { a.classList.remove('active'); });
+    document.getElementById(pageId).classList.add('active');
+    const link = document.querySelector('[data-page="' + pageId + '"]');
+    if (link) link.classList.add('active');
+    document.getElementById('nav-subtitle').textContent = subtitles[pageId];
+    if (pageId === 'map') initMap();
+  }
+
+  document.querySelectorAll('.nav-links a').forEach(function (link) {
+    link.addEventListener('click', function (e) {
+      e.preventDefault();
+      switchPage(link.dataset.page);
+    });
+  });
+
+  function selectRadio(el) {
+    el.closest('.radio-group').querySelectorAll('.radio-item').forEach(function (item) {
+      item.classList.remove('selected');
+      item.setAttribute('aria-checked', 'false');
+    });
+    el.classList.add('selected');
+    el.setAttribute('aria-checked', 'true');
+    selectedReportCategory = el.dataset.category;
+  }
+
+  /* ── Controls ── */
+  document.getElementById('toggle-refuges').addEventListener('change', function (e) {
+    setRefugesVisible(e.target.checked);
+  });
+
+  document.getElementById('toggle-stress').addEventListener('change', function (e) {
+    setStressVisible(e.target.checked);
+  });
+
+  document.querySelectorAll('[data-filter]').forEach(function (input) {
+    input.addEventListener('change', function () {
+      if (mapReady) renderReports();
+    });
+  });
+
+  document.querySelectorAll('.radio-item[role="radio"]').forEach(function (item) {
+    item.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        selectRadio(item);
+      }
+    });
+  });
+
+  document.getElementById('model-predict-button').addEventListener('click', runFacilityPrediction);
+  document.getElementById('save-preferences-button').addEventListener('click', savePreferences);
+  document.getElementById('compare-routes-button').addEventListener('click', renderRouteSuggestions);
+
+  // Boot map on first load
+  loadPreferences();
+  initMap();
+  renderRouteSuggestions();
+  checkModelService();
+  loadNearbyRefuges();
+  loadCommunityReports();
+</script>
+  <!-- redeploy -->
+
+</body>
+</html>

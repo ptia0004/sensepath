@@ -13,6 +13,7 @@ VALUES
     ('crowds', 'Crowds', 'crowds', interval '2 hours'),
     ('loud', 'Loud event', 'loud', interval '2 hours'),
     ('roadworks', 'Roadworks', 'roadworks', interval '8 hours'),
-    ('heavy', 'Heavy crowds', 'heavy', interval '1 hour');
+    ('heavy', 'Heavy crowds', 'heavy', interval '1 hour'),
+    ('other', 'Other sensory issue', 'other', interval '2 hours');
 
 COMMIT;

@@ -1,0 +1,126 @@
+{
+  "model_name": "RandomForestRegressor",
+  "model_version": "2.0.0",
+  "target": "CONDITION_RATING",
+  "target_interpretation": "Street-furniture condition from 1 (poor) to 5 (good)",
+  "not_valid_for": [
+    "live pedestrian crowd prediction",
+    "noise prediction",
+    "clinical or personal safety decisions"
+  ],
+  "data": {
+    "rows": 3966,
+    "asset_type_distribution": {
+      "Seat": 3388,
+      "Drinking Fountain": 302,
+      "Picnic Setting": 170,
+      "Barbeque": 63,
+      "Information Pillar": 43
+    },
+    "condition_category_distribution": {
+      "Average": 2294,
+      "Good": 1488,
+      "Poor": 184
+    }
+  },
+  "holdout": {
+    "mae": 0.4706548247686066,
+    "rmse": 0.6463304064539148,
+    "r2": 0.31027373164761773
+  },
+  "baseline_holdout": {
+    "mae": 0.5867299830697444,
+    "rmse": 0.7783339009448268,
+    "r2": -0.00022909874841392508
+  },
+  "random_5_fold_cv": {
+    "mae_mean": 0.4759954975680084,
+    "rmse_mean": 0.663046902942603,
+    "r2_mean": 0.296716486125466,
+    "r2_by_fold": [
+      0.3160247074171202,
+      0.3463266754273968,
+      0.2535245910937667,
+      0.2595159858321011,
+      0.30819047085694506
+    ]
+  },
+  "spatial_5_fold_cv": {
+    "mae_mean": 0.6179624424141787,
+    "rmse_mean": 0.8143349424446326,
+    "r2_mean": -0.06938370525882172,
+    "r2_by_fold": [
+      -0.11381358774266559,
+      -0.03648456970852321,
+      0.05244618752448038,
+      -0.2212832577513324,
+      -0.027783298616067764
+    ]
+  },
+  "subgroup_holdout": {
+    "Barbeque": {
+      "samples": 17,
+      "mae": 0.43062599820180963,
+      "rmse": 0.5162652705548912
+    },
+    "Drinking Fountain": {
+      "samples": 56,
+      "mae": 0.576019258431978,
+      "rmse": 0.8725886997507645
+    },
+    "Information Pillar": {
+      "samples": 9,
+      "mae": 0.2271250390909229,
+      "rmse": 0.31217599594414386
+    },
+    "Picnic Setting": {
+      "samples": 43,
+      "mae": 0.4729303114431555,
+      "rmse": 0.5631586430316746
+    },
+    "Seat": {
+      "samples": 669,
+      "mae": 0.46598218487410775,
+      "rmse": 0.6352894168369715
+    }
+  },
+  "feature_importance": [
+    {
+      "feature": "lat",
+      "importance": 0.49192545887857236
+    },
+    {
+      "feature": "lon",
+      "importance": 0.4688223284125651
+    },
+    {
+      "feature": "ASSET_TYPE_Seat",
+      "importance": 0.021949581774545774
+    },
+    {
+      "feature": "ASSET_TYPE_Information Pillar",
+      "importance": 0.0067172658326558835
+    },
+    {
+      "feature": "ASSET_TYPE_Drinking Fountain",
+      "importance": 0.0054751313047293835
+    },
+    {
+      "feature": "ASSET_TYPE_Picnic Setting",
+      "importance": 0.003533102809406621
+    },
+    {
+      "feature": "ASSET_TYPE_Barbeque",
+      "importance": 0.0015771309875248164
+    },
+    {
+      "feature": "ASSET_CLASS_Outdoor Furniture",
+      "importance": 0.0
+    }
+  ],
+  "limitations": [
+    "Asset types are imbalanced; seats dominate the training data.",
+    "Spatial validation is the preferred estimate for unseen locations.",
+    "Condition rating is not a ground-truth sensory-stress label."
+  ]
+}

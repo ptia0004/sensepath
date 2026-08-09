@@ -1,0 +1,11 @@
+.git
+.env
+.env.*
+!.env.example
+venv
+__pycache__
+*.pyc
+database/*.sqlite3
+database/*.sqlite3-*
+datasets/archives
+*.ipynb

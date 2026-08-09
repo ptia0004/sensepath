@@ -1,0 +1,30 @@
+{
+  "datasets": [
+    {
+      "source_file": "street_furniture_clean.csv",
+      "raw_rows": 3967,
+      "clean_rows": 3966,
+      "invalid_coordinate_rows": 0,
+      "invalid_target_rows": 1,
+      "duplicate_ids_removed": 0
+    },
+    {
+      "source_file": "buildings_refuge_final.csv",
+      "raw_rows": 33,
+      "clean_rows": 33,
+      "invalid_coordinate_rows": 0
+    },
+    {
+      "source_file": "landmarks_refuge_candidates.csv",
+      "raw_rows": 72,
+      "clean_rows": 72,
+      "invalid_coordinate_rows": 0
+    }
+  ],
+  "outputs": {
+    "model_rows": 3966,
+    "refuge_rows": 4071,
+    "model_dataset": "datasets\\processed_sensory_features.csv",
+    "refuge_catalog": "datasets\\refuge_locations.csv"
+  }
+}

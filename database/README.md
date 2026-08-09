@@ -5,7 +5,7 @@ PostgreSQL 17 stores three open datasets plus the community-report workflow used
 ## Start locally
 
 1. Copy `.env.example` to `.env` and change the local password.
-2. Run `docker compose up -d`.
+2. Run `docker compose up --build -d`.
 3. Check `docker compose ps` and then run:
 
 ```powershell
@@ -13,6 +13,10 @@ docker compose exec postgres psql -U sensepath_admin -d sensepath -c "SELECT pla
 ```
 
 Initialization imports the CSV files only when the Docker volume is first created. Future schema changes must be added as numbered migration files and executed explicitly against existing databases.
+
+The compose stack now starts both PostgreSQL and the SensePath Flask web/API
+service. Developers without Docker can run `python run.py`; reports then use the
+ignored local SQLite file `database/sensepath.sqlite3`.
 
 ## Main model
 
@@ -59,6 +63,10 @@ Expire stale rows from an application scheduler:
 ```sql
 SELECT expire_community_reports();
 ```
+
+Moderation is exposed through the API only when `MODERATOR_TOKEN` is configured.
+Actions are written to `report_review`; the token must never be included in
+frontend JavaScript or committed to Git.
 
 ## Production / Neon
 

@@ -646,13 +646,20 @@
 
 <script>
   const CBD = { lat: -37.8136, lng: 144.9631 };
-  const API_HELP = 'Cannot connect to the SensePath API. Run "python run.py" and open http://127.0.0.1:5000 instead of opening frontend/index.html directly.';
+  const CLOUD_API_BASE = 'https://sensepath-api-372335509396.australia-southeast2.run.app';
+  const API_BASE = (window.location.hostname === 'ptia0004.github.io' ||
+    window.location.hostname.endsWith('.github.io'))
+    ? CLOUD_API_BASE
+    : '';
+  const API_HELP = API_BASE
+    ? ('Cannot connect to the SensePath cloud API at ' + API_BASE + '.')
+    : 'Cannot connect to the SensePath API. Run "python run.py" and open http://127.0.0.1:5001 instead of opening frontend/index.html directly.';
 
   function apiFetch(path, options) {
     if (window.location.protocol === 'file:') {
       return Promise.reject(new Error(API_HELP));
     }
-    return fetch(path, options);
+    return fetch(API_BASE + path, options);
   }
 
   function apiErrorMessage(error) {

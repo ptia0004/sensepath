@@ -12,6 +12,7 @@ from typing import Any
 import joblib
 import pandas as pd
 from flask import Flask, jsonify, request, send_from_directory
+from flask_cors import CORS
 
 from .report_store import ReportNotFoundError, ReportValidationError, create_report_store
 
@@ -222,6 +223,15 @@ def create_app(
     moderator_token: str | None = None,
 ) -> Flask:
     app = Flask(__name__, static_folder=None)
+    allowed_origins = [
+        origin.strip()
+        for origin in os.getenv(
+            "CORS_ORIGINS",
+            "https://ptia0004.github.io,http://127.0.0.1:5000,http://127.0.0.1:5001,http://localhost:5000,http://localhost:5001",
+        ).split(",")
+        if origin.strip()
+    ]
+    CORS(app, resources={r"/api/*": {"origins": allowed_origins}})
     app.config["MAX_CONTENT_LENGTH"] = 16 * 1024
     predictor = SensoryRiskPredictor(
         Path(model_path or os.getenv("SENSEPATH_MODEL_PATH", DEFAULT_MODEL_PATH)).resolve()

@@ -98,8 +98,8 @@ def subgroup_metrics(test_frame: pd.DataFrame, actual, predicted) -> dict:
 
 
 def train_sensory_model(
-    dataset_path: str | Path = "datasets/processed_sensory_features.csv",
-    model_output_dir: str | Path = "models",
+    dataset_path: str | Path = "data/datasets/processed_sensory_features.csv",
+    model_output_dir: str | Path = "data/models",
 ) -> dict:
     dataset_path = Path(dataset_path)
     output_dir = Path(model_output_dir)

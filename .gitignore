@@ -12,5 +12,5 @@ __pycache__/
 *.py[cod]
 
 # Local development database
-database/*.sqlite3
-database/*.sqlite3-*
+data/database/*.sqlite3
+data/database/*.sqlite3-*

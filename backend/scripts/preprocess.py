@@ -156,7 +156,7 @@ def furniture_refuge_catalog(frame: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def run_data_pipeline(dataset_dir: str | Path = "datasets") -> dict:
+def run_data_pipeline(dataset_dir: str | Path = "data/datasets") -> dict:
     dataset_path = Path(dataset_dir)
     print("Running validated SensePath data pipeline...")
 

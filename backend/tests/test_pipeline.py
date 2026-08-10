@@ -14,19 +14,20 @@ from scripts.preprocess import (
 from scripts.train_model import build_pipeline
 
 
-BASE_DIR = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
+DATA_DIR = REPO_ROOT / "data"
 
 
 class DataPipelineTests(unittest.TestCase):
     def test_all_three_sources_are_valid(self):
         furniture, _ = process_street_furniture(
-            BASE_DIR / "datasets" / "street_furniture_clean.csv"
+            DATA_DIR / "datasets" / "street_furniture_clean.csv"
         )
         buildings, _ = process_refuge_buildings(
-            BASE_DIR / "datasets" / "buildings_refuge_final.csv"
+            DATA_DIR / "datasets" / "buildings_refuge_final.csv"
         )
         landmarks, _ = process_landmark_candidates(
-            BASE_DIR / "datasets" / "landmarks_refuge_candidates.csv"
+            DATA_DIR / "datasets" / "landmarks_refuge_candidates.csv"
         )
         self.assertGreater(len(furniture), 0)
         self.assertGreater(len(buildings), 0)
@@ -34,7 +35,7 @@ class DataPipelineTests(unittest.TestCase):
 
     def test_data_quality_report_has_three_datasets(self):
         report = json.loads(
-            (BASE_DIR / "datasets" / "data_quality_report.json").read_text(
+            (DATA_DIR / "datasets" / "data_quality_report.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -57,7 +58,7 @@ class DataPipelineTests(unittest.TestCase):
 
     def test_evaluation_contains_robustness_and_bias_evidence(self):
         report = json.loads(
-            (BASE_DIR / "models" / "evaluation_report.json").read_text(
+            (DATA_DIR / "models" / "evaluation_report.json").read_text(
                 encoding="utf-8"
             )
         )

@@ -25,7 +25,7 @@ targets.
 The model improves on the mean baseline in a random holdout, but its negative
 spatial-validation R2 shows weak generalisation to unseen areas. Product UI and
 API responses therefore expose training-area warnings and a clear disclaimer.
-The machine-readable results are in `models/evaluation_report.json`.
+The machine-readable results are in `data/models/evaluation_report.json`.
 
 ## Bias and limitations
 

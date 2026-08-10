@@ -16,7 +16,7 @@ Initialization imports the CSV files only when the Docker volume is first create
 
 The compose stack now starts both PostgreSQL and the SensePath Flask web/API
 service. Developers without Docker can run `python run.py`; reports then use the
-ignored local SQLite file `database/sensepath.sqlite3`.
+ignored local SQLite file `data/database/sensepath.sqlite3`.
 
 ## Main model
 

@@ -1,13 +1,8 @@
-"""Local SensePath application launcher."""
+"""Convenience launcher from the repository root."""
 
-import os
+from __future__ import annotations
 
-from src.sensepath.app import app
+import runpy
+from pathlib import Path
 
-
-if __name__ == "__main__":
-    app.run(
-        host=os.getenv("HOST", "127.0.0.1"),
-        port=int(os.getenv("PORT", "5000")),
-        debug=os.getenv("FLASK_DEBUG", "0") == "1",
-    )
+runpy.run_path(str(Path(__file__).resolve().parent / "backend" / "run.py"), run_name="__main__")

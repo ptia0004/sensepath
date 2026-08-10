@@ -351,4 +351,4 @@ def create_report_store(database_url: str | None, base_dir: Path):
         return PostgresReportStore(database_url)
     if database_url and database_url.startswith("sqlite:///"):
         return SQLiteReportStore(database_url[len("sqlite:///") :])
-    return SQLiteReportStore(base_dir / "database" / "sensepath.sqlite3")
+    return SQLiteReportStore(base_dir / "data" / "database" / "sensepath.sqlite3")

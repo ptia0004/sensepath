@@ -2,7 +2,7 @@
 
 | Requirement | Implementation/evidence | Status |
 |---|---|---|
-| Submit a sensory report in fewer than three steps | Category → confirmation → submit in `web/index.html` | Pass |
+| Submit a sensory report in fewer than three steps | Category → confirmation → submit in `frontend/index.html` | Pass |
 | New reports appear on the map within one minute | `POST /api/reports`, immediate reload and marker rendering | Pass |
 | Filter reports by category | Existing filter controls now apply to API reports | Pass |
 | Display location, time and incident type | Popup and Recent report card | Pass |

@@ -5,7 +5,7 @@
 venv
 __pycache__
 *.pyc
-database/*.sqlite3
-database/*.sqlite3-*
-datasets/archives
+data/database/*.sqlite3
+data/database/*.sqlite3-*
+data/datasets/archives
 *.ipynb

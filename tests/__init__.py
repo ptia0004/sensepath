@@ -1,1 +1,0 @@
-"""SensePath automated tests."""

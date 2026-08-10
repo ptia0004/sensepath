@@ -16,10 +16,11 @@ from flask import Flask, jsonify, request, send_from_directory
 from .report_store import ReportNotFoundError, ReportValidationError, create_report_store
 
 
-BASE_DIR = Path(__file__).resolve().parents[2]
-WEB_DIR = BASE_DIR / "web"
-DEFAULT_MODEL_PATH = BASE_DIR / "models" / "sensory_risk_model.pkl"
-DEFAULT_REFUGE_PATH = BASE_DIR / "datasets" / "refuge_locations.csv"
+# backend/src/sensepath/app.py -> repository root is parents[3]
+BASE_DIR = Path(__file__).resolve().parents[3]
+WEB_DIR = BASE_DIR / "frontend"
+DEFAULT_MODEL_PATH = BASE_DIR / "data" / "models" / "sensory_risk_model.pkl"
+DEFAULT_REFUGE_PATH = BASE_DIR / "data" / "datasets" / "refuge_locations.csv"
 MAX_BATCH_SIZE = 100
 
 
@@ -33,7 +34,7 @@ class SensoryRiskPredictor:
     def __init__(self, model_path: Path) -> None:
         if not model_path.is_file():
             raise FileNotFoundError(
-                f"Model not found at '{model_path}'. Run 'python scripts/train_model.py' first."
+                f"Model not found at '{model_path}'. Run 'python backend/scripts/train_model.py' first."
             )
         artifact = joblib.load(model_path)
         if not isinstance(artifact, dict):

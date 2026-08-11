@@ -84,7 +84,7 @@ export default function AiPage({ modelStatus }) {
 
         <div className="sidebar-stack">
           <div className="card-sm model-card ai-card">
-            <h3>AI facility condition</h3>
+            <h3>AI prediction</h3>
             <p className="model-note">
               Estimates street-furniture condition from asset type and location. It is not a live crowd
               or noise prediction.

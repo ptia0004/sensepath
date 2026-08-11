@@ -95,7 +95,14 @@
       flex-wrap: wrap;
       min-width: 0;
     }
-    .nav-logo { font-size: 27px; font-weight: 700; color: #111827; }
+    .nav-logo {
+      font-size: 27px;
+      font-weight: 700;
+      color: #111827;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .nav-logo:hover { color: #374151; }
     .nav-subtitle { font-size: 15px; color: #6b7280; }
     .nav-links {
       margin-left: auto;

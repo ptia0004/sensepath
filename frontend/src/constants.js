@@ -46,9 +46,7 @@ export const FALLBACK_REFUGES = [
 ]
 
 export const PAGE_SUBTITLES = {
-  home: 'Homepage',
-  routes: 'Quiet route comparison',
-  ai: 'AI facility condition',
+  map: 'Community Sensory Map',
   report1: 'Report a Sensory Issue · Step 1 of 2',
   report2: 'Report a Sensory Issue · Step 2 of 2',
   published: 'Report Published',

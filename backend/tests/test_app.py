@@ -205,17 +205,25 @@ class SensePathApiTests(unittest.TestCase):
     def test_frontend_contains_integrated_features(self):
         response = self.client.get("/")
         html = response.get_data(as_text=True)
-        for element_id in (
-            'id="submit-report-button"',
-            'id="crowd-tolerance"',
-            'id="compare-routes-button"',
-            'id="model-predict-button"',
-            'class="card-sm model-card preferences-card"',
-            'class="card-sm model-card route-card"',
-            'class="card-sm model-card ai-card"',
-            'Run "python run.py"',
+        # React mount point (production dist) or legacy HTML prototype
+        self.assertTrue(
+            'id="root"' in html
+            or 'id="submit-report-button"' in html
+            or 'id="model-predict-button"' in html,
+            "Expected React root or legacy SensePath markup",
+        )
+        # Source tree must include explainable React modules for mentor review
+        frontend_src = Path(__file__).resolve().parents[2] / "frontend" / "src"
+        for relative in (
+            "App.jsx",
+            "pages/MapPage.jsx",
+            "api/client.js",
+            "components/map/SenseMap.jsx",
         ):
-            self.assertIn(element_id, html)
+            self.assertTrue(
+                (frontend_src / relative).is_file(),
+                f"Missing React source file: {relative}",
+            )
         response.close()
 
 

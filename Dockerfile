@@ -7,12 +7,20 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# Build React frontend
+COPY frontend/package.json frontend/package-lock.json ./frontend/
+RUN apt-get update && apt-get install -y --no-install-recommends nodejs npm \
+    && rm -rf /var/lib/apt/lists/*
+COPY frontend ./frontend
+RUN cd frontend && npm ci && npm run build
+
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY backend ./backend
+COPY data ./data
+COPY run.py ./run.py
 
 EXPOSE 8080
 
-# Cloud Run sets $PORT; bind to it so the service becomes healthy.
 CMD exec gunicorn --bind 0.0.0.0:${PORT} --workers 2 --threads 4 --timeout 60 src.sensepath.app:app

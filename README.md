@@ -8,11 +8,23 @@ mock data shown in the prototype page.
 ## Project structure
 
 ```text
-frontend/       Browser interface and client-side security helpers
-backend/        Flask API, ML scripts, and automated tests
-data/           Datasets, trained models, database schema, notebooks
-docs/           Model, data and acceptance evidence
+frontend/           React (Vite) UI — primary frontend for Iteration 1+
+frontend-legacy/    Previous plain HTML prototype (kept for reference)
+backend/            Flask API, ML scripts, and automated tests
+data/               Datasets, trained models, database schema, notebooks
+docs/               Model, data and acceptance evidence
 ```
+
+### Frontend (React)
+
+```bash
+cd frontend
+npm install
+npm run dev      # http://localhost:5173 (proxies /api → :5001)
+npm run build    # outputs frontend/dist for Pages / Cloud Run
+```
+
+See `frontend/README.md` for the explainable module map used in mentor reviews.
 
 ## Run the complete pipeline
 

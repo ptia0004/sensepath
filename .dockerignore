@@ -8,4 +8,6 @@ __pycache__
 data/database/*.sqlite3
 data/database/*.sqlite3-*
 data/datasets/archives
+frontend/node_modules
+frontend-legacy
 *.ipynb

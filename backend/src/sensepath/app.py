@@ -19,7 +19,10 @@ from .report_store import ReportNotFoundError, ReportValidationError, create_rep
 
 # backend/src/sensepath/app.py -> repository root is parents[3]
 BASE_DIR = Path(__file__).resolve().parents[3]
-WEB_DIR = BASE_DIR / "frontend"
+# Prefer React production build; fall back to legacy HTML prototype if needed.
+_REACT_DIST = BASE_DIR / "frontend" / "dist"
+_LEGACY_WEB = BASE_DIR / "frontend-legacy"
+WEB_DIR = _REACT_DIST if (_REACT_DIST / "index.html").is_file() else _LEGACY_WEB
 DEFAULT_MODEL_PATH = BASE_DIR / "data" / "models" / "sensory_risk_model.pkl"
 DEFAULT_REFUGE_PATH = BASE_DIR / "data" / "datasets" / "refuge_locations.csv"
 MAX_BATCH_SIZE = 100
@@ -222,7 +225,11 @@ def create_app(
     database_url: str | None = None,
     moderator_token: str | None = None,
 ) -> Flask:
-    app = Flask(__name__, static_folder=None)
+    app = Flask(
+        __name__,
+        static_folder=str(WEB_DIR) if WEB_DIR.is_dir() else None,
+        static_url_path="",
+    )
     allowed_origins = [
         origin.strip()
         for origin in os.getenv(
@@ -368,6 +375,14 @@ def create_app(
         except ReportNotFoundError as exc:
             return jsonify({"error": str(exc)}), 404
         return jsonify(result)
+
+    @app.get("/<path:asset_path>")
+    def frontend_assets(asset_path: str):
+        """Serve Vite build assets when Flask hosts the React app."""
+        candidate = WEB_DIR / asset_path
+        if candidate.is_file():
+            return send_from_directory(WEB_DIR, asset_path)
+        return send_from_directory(WEB_DIR, "index.html")
 
     @app.errorhandler(404)
     def not_found(_error):

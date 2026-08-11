@@ -14,3 +14,8 @@ __pycache__/
 # Local development database
 data/database/*.sqlite3
 data/database/*.sqlite3-*
+
+# React / Node
+frontend/node_modules/
+frontend/dist/
+frontend-legacy/node_modules/

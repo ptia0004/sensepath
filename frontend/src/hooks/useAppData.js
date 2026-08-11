@@ -7,6 +7,8 @@ export function useAppData() {
   const [reports, setReports] = useState([])
   const [refuges, setRefuges] = useState(FALLBACK_REFUGES)
   const [modelStatus, setModelStatus] = useState('Checking model service...')
+  const [booting, setBooting] = useState(true)
+  const [bootMessage, setBootMessage] = useState('Connecting to SensePath services…')
 
   const loadReports = useCallback(async () => {
     try {
@@ -63,10 +65,33 @@ export function useAppData() {
   }, [])
 
   useEffect(() => {
-    checkModel()
-    loadReports()
-    loadRefuges()
+    let cancelled = false
+    const startedAt = Date.now()
+    const minDisplayMs = 900
+
+    async function boot() {
+      setBootMessage('Checking model service…')
+      await checkModel()
+      if (cancelled) return
+      setBootMessage('Loading community reports…')
+      await loadReports()
+      if (cancelled) return
+      setBootMessage('Loading nearby refuges…')
+      await loadRefuges()
+      if (cancelled) return
+      setBootMessage('Ready')
+      const elapsed = Date.now() - startedAt
+      const wait = Math.max(0, minDisplayMs - elapsed)
+      window.setTimeout(() => {
+        if (!cancelled) setBooting(false)
+      }, wait)
+    }
+
+    boot()
+    return () => {
+      cancelled = true
+    }
   }, [checkModel, loadReports, loadRefuges])
 
-  return { reports, refuges, modelStatus, loadReports, setReports }
+  return { reports, refuges, modelStatus, loadReports, setReports, booting, bootMessage }
 }

@@ -53,7 +53,7 @@ export default function AiPage({ modelStatus }) {
       if (!response.ok) throw new Error(body.error || 'Prediction failed')
       setModelLevel(body.sensory_risk_level)
       setModelResult(
-        `Condition: ${body.condition_label} (${body.condition_score}/5) · Assistive risk: ${body.sensory_risk_level} (${body.sensory_risk_score}/100) · ${body.latency_ms} ms`,
+        `Condition: ${body.condition_category} (${body.condition_score}/5) · Assistive risk: ${body.sensory_risk_level} (${body.sensory_risk_score}/100) · ${body.latency_ms} ms`,
       )
     } catch (error) {
       setModelResult(apiErrorMessage(error))

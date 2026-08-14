@@ -1,4 +1,31 @@
-# SensePath AI model and API
+# Haven — Sensory-Aware Navigation for Melbourne CBD
+
+## Project overview
+
+Haven is a sensory-aware wayfinding app designed for neurodivergent and
+sensory-sensitive adults who commute in Melbourne's CBD. The app helps users
+find routes with lower sensory load, instead of just the fastest route.
+
+**Problem statement:** Sensory-sensitive adults rely heavily on public transport
+but currently lack real-time, sensory-aware navigation tools to move through
+Melbourne's dense CBD independently, especially during high-stimulation events
+like construction, protests, or peak-hour crowding.
+
+This project supports UN Sustainable Development Goal 11 (Sustainable Cities
+and Communities), specifically Target 11.2 (Accessible Transit) and Target 11.7
+(Inclusive Public Spaces). It is developed for FIT5120 (Industry Experience
+Studio Project) at Monash University, S2 2026.
+
+## Project scope
+
+### Epic 2: Sensory Environment Monitoring
+
+Give users real-time alerts about sensory stressors and nearby quiet spaces.
+
+- US2.1 — Nearby sensory refuge locations (parks, libraries, quiet spaces)
+- US2.2 — Predictive overcrowding alerts
+
+## Current implementation
 
 The AI pipeline currently predicts the condition of Melbourne street furniture
 from asset type and location. A lower predicted condition is converted to a
@@ -89,6 +116,14 @@ Do not use this model as evidence of real-time crowd or noise conditions. A
 pedestrian-stress feature needs timestamped pedestrian counts, event, roadwork,
 weather, and noise data plus a separately evaluated model.
 
+## Data sources
+
+- Pedestrian Counts per Hour (data.gov.au)
+- Sensor Locations (data.gov.au)
+- Real-time Pedestrian Counting System (melbourne.vic.gov.au)
+- Public Facilities and Open Space Datasets (melbourne.vic.gov.au)
+- Historical Pedestrian Patterns (data.gov.au / melbourne.vic.gov.au)
+
 ## Database modes
 
 Without `DATABASE_URL`, local development uses the ignored file
@@ -107,3 +142,20 @@ docker compose ps
 
 The web app will be available on `WEB_PORT` (default 5000). Do not deploy the
 example PostgreSQL password or moderator token.
+
+## Team
+
+| Role                              | Responsibility                            |
+| --------------------------------- | ----------------------------------------- |
+| #1 Frontend Lead                  | Frontend development, UI/UX, prototypes   |
+| #2 Map & Geospatial Developer     | Map design, geospatial logic              |
+| #3 Backend Developer              | Backend/API, business logic               |
+| #4 Database & Open Data / DS Lead | Data pipeline, ERD, data governance       |
+| #5 Testing & Security             | Test plan, security plan, risk assessment |
+| #6 Product Owner & Governance     | LeanKit, requirements, meetings, PGP      |
+
+## Project links
+
+- [LeanKit Board](https://monashie.leankit.com/board/2494535061)
+- [Project Governance Portfolio (PGP)](https://drive.google.com/drive/folders/1ykz-R1h4Lw1EoRRzGOngtEx4NOxwoo59?usp=sharing)
+- [Deployed Build](https://ptia0004.github.io/sensepath/)

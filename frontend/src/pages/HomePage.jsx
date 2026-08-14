@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { MOCK_STRESS_ZONES, REPORT_TYPES } from '../constants'
-import { reportAllowedByPreferences } from '../utils/geo'
+// import { reportAllowedByPreferences } from '../utils/geo'
 import SenseMap from '../components/map/SenseMap'
 
 function buildAlerts(stressZones) {
@@ -34,7 +34,7 @@ function buildAlerts(stressZones) {
 /**
  * Homepage: community map + alerts + filters + recent reports.
  */
-export default function HomePage({ reports, preferences, onNavigate }) {
+export default function HomePage({ reports, /*preferences,*/ onNavigate }) {
   const [filters, setFilters] = useState({
     crowds: true,
     loud: true,
@@ -50,10 +50,10 @@ export default function HomePage({ reports, preferences, onNavigate }) {
   const visibleReports = useMemo(
     () =>
       reports
-        .filter((r) => filters[r.type] && reportAllowedByPreferences(r.type, preferences))
+        .filter((r) => filters[r.type] /*&& reportAllowedByPreferences(r.type, preferences)*/)
         .slice()
         .sort((a, b) => a.minsAgo - b.minsAgo),
-    [reports, filters, preferences],
+    [reports, filters/*, preferences*/ ],
   )
 
   return (
@@ -89,7 +89,7 @@ export default function HomePage({ reports, preferences, onNavigate }) {
           <SenseMap
             reports={reports}
             filters={filters}
-            preferencesFilter={(type) => reportAllowedByPreferences(type, preferences)}
+            // preferencesFilter={(type) => reportAllowedByPreferences(type, preferences)}
             showStress={showStress}
             stressZones={MOCK_STRESS_ZONES}
             showRefuges={false}

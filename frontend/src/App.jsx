@@ -34,7 +34,7 @@ export default function App() {
 
       <main className="app-main">
         {page === 'home' && (
-          <HomePage reports={reports} preferences={preferences} onNavigate={setPage} />
+          <HomePage reports={reports} /*preferences={preferences}*/ onNavigate={setPage} />
         )}
 
         {page === 'routes' && (
